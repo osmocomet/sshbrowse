@@ -1,0 +1,28 @@
+SSHBrowse
+Copyright © 2026. All rights reserved.
+
+SSHBrowse is free for personal, non-commercial use.
+
+Professional, workplace, or commercial use requires a paid license.
+
+The source code is publicly available. You may clone, copy, build, inspect,
+and privately modify it for personal, non-commercial use, including running
+your modified copy for those purposes.
+
+Independent redistribution, resale, or publication of SSHBrowse, including
+modified versions, requires authorization from the SSHBrowse copyright holder.
+This does not limit viewing and forking rights under GitHub's Terms of Service.
+
+You may submit and publish patches in official project pull requests for
+review under the contribution terms in CONTRIBUTING.md.
+
+Third-party components remain subject to their respective licenses as listed
+in docs/legal/THIRD_PARTY_NOTICES.txt. These terms do not restrict the rights
+granted by those licenses.
+
+For builds linked to LGPL libraries, you may modify SSHBrowse for your own
+use and reverse engineer it to debug those modifications, including with
+compatible modified libraries. These rights also apply to paid licensees;
+they do not authorize independent redistribution of SSHBrowse.
+
+This notice does not alter the licenses or rights granted for prior releases.

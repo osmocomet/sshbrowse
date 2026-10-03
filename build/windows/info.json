@@ -1,0 +1,17 @@
+{
+  "fixed": {
+    "file_version": "0.1.0.0",
+    "product_version": "0.1.0.0"
+  },
+  "info": {
+    "0409": {
+      "ProductVersion": "0.1.0",
+      "CompanyName": "SSHBrowse",
+      "FileDescription": "SSH session manager",
+      "LegalCopyright": "Copyright © 2026. All rights reserved.",
+      "ProductName": "SSHBrowse",
+      "Comments": "",
+      "FileVersion": "0.1.0"
+    }
+  }
+}

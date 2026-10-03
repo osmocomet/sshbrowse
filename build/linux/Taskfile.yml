@@ -1,0 +1,275 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application natively on Linux
+    platforms: [linux]
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          OBFUSCATED:
+            ref: .OBFUSCATED
+          DEV:
+            ref: .DEV
+    preconditions:
+      - sh: '{{if eq .OBFUSCATED "true"}}command -v garble >/dev/null 2>&1{{else}}true{{end}}'
+        msg: "garble is required for obfuscated builds"
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}"
+      - '{{if eq .OBFUSCATED "true"}}garble {{.GARBLE_ARGS}} build{{else}}go build{{end}} {{.BUILD_FLAGS}} -o "{{.OUTPUT}}.tmp"'
+      - mv "{{.OUTPUT}}.tmp" "{{.OUTPUT}}"
+    vars:
+      BUILD_FLAGS: '{{if eq .DEV "true"}}{{if or .EXTRA_TAGS (eq .OBFUSCATED "true")}}-tags {{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}} {{end}}-gcflags=all="-l"{{else}}-tags production{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -ldflags="-w -s{{if eq .RELEASE "true"}} -X sshbrowse/internal/buildinfo.Version={{.VERSION}} -X sshbrowse/internal/buildinfo.Commit={{.BUILD_COMMIT}}{{end}}"{{end}}'
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
+      OUTPUT: '{{.OUTPUT | default .DEFAULT_OUTPUT}}'
+    env:
+      GOOS: linux
+      CGO_ENABLED: 1
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  check:
+    summary: Runs Go and frontend checks natively on Linux
+    platforms: [linux]
+    deps:
+      - task: common:build:frontend
+    cmds:
+      - go test ./...
+      - npm --prefix frontend run check
+      - npm --prefix frontend test
+
+  package:
+    summary: Packages the application as a DEB and RPM
+    platforms: [linux]
+    deps:
+      - task: create:deb
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+      - task: create:rpm
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+
+  release:
+    summary: Builds the Linux release artifacts
+    platforms: [linux]
+    deps:
+      - task: package
+        vars:
+          RELEASE: "true"
+
+  prepare:package:
+    summary: Builds the Linux binary and desktop metadata shared by package formats
+    internal: true
+    run: once
+    deps:
+      - task: build
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+      - task: generate:dotdesktop
+
+  create:deb:
+    summary: Creates the Wails DEB package
+    platforms: [linux]
+    deps:
+      - task: prepare:package
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        config="$(mktemp "build/linux/nfpm/sshbrowse.XXXXXX.yaml")"
+        trap 'rm -f -- "$config"' EXIT
+        sed 's/\${SSHBROWSER_VERSION}/{{.VERSION}}/' build/linux/nfpm/nfpm.yaml > "$config"
+        wails3 tool package -name "{{.APP_NAME}}" -format deb -config "$config" -out "{{.BIN_DIR}}"
+        rm -f -- "$config"
+        trap - EXIT
+      - rm -f "{{.DEB_OUTPUT}}"
+      - mv "{{.BIN_DIR}}/{{.APP_NAME}}.deb" "{{.DEB_OUTPUT}}"
+    vars:
+      DEB_OUTPUT: '{{.DEB_OUTPUT | default (printf "bin/sshbrowse_%s_amd64.deb" .VERSION)}}'
+    env:
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  create:rpm:
+    summary: Creates the Wails RPM package
+    platforms: [linux]
+    deps:
+      - task: prepare:package
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        config="$(mktemp "build/linux/nfpm/sshbrowse.XXXXXX.yaml")"
+        trap 'rm -f -- "$config"' EXIT
+        sed 's/\${SSHBROWSER_VERSION}/{{.VERSION}}/' build/linux/nfpm/nfpm.yaml > "$config"
+        wails3 tool package -name "{{.APP_NAME}}" -format rpm -config "$config" -out "{{.BIN_DIR}}"
+        rm -f -- "$config"
+        trap - EXIT
+      - rm -f "{{.RPM_OUTPUT}}"
+      - mv "{{.BIN_DIR}}/{{.APP_NAME}}.rpm" "{{.RPM_OUTPUT}}"
+    vars:
+      RPM_OUTPUT: '{{.RPM_OUTPUT | default (printf "bin/sshbrowse-%s.x86_64.rpm" .VERSION)}}'
+    env:
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  generate:dotdesktop:
+    summary: Generates the Linux desktop entry used by Wails packaging
+    run: once
+    dir: build
+    cmds:
+      - wails3 generate .desktop -name "{{.PRODUCT_NAME}}" -exec "{{.APP_NAME}}" -icon "{{.APP_NAME}}" -outputfile "linux/{{.APP_NAME}}.desktop" -categories "Network;RemoteAccess;"
+
+  check:not-running:
+    summary: Refuses an install, update or uninstall while SSHBrowse is running
+    internal: true
+    platforms: [linux]
+    cmds:
+      - |
+        if pgrep -x "{{.APP_NAME}}" >/dev/null 2>&1; then
+          echo "SSHBrowse is running; close it before installing, updating, or uninstalling. No process was stopped." >&2
+          exit 1
+        else
+          exit 0
+        fi
+
+  check:desktop-path:
+    summary: Refuses Linux prefixes containing percent signs because GIO cannot launch that executable path reliably
+    internal: true
+    platforms: [linux]
+    cmds:
+      - |
+        install_root="${SSHBROWSE_INSTALL_ROOT:-$HOME/.local}"
+        case "$install_root" in
+          *%*)
+            echo "INSTALL_ROOT cannot contain '%' because the GNOME desktop launcher cannot represent that executable path safely; no installed files were changed. Choose a prefix without '%'" >&2
+            exit 1
+            ;;
+        esac
+    env:
+      SSHBROWSE_INSTALL_ROOT: '{{.INSTALL_ROOT | default ""}}'
+
+  install:
+    summary: Installs bin/sshbrowse, a GNOME launcher and icon under INSTALL_ROOT; INSTALL_ROOT defaults to ~/.local and profiles stay in place
+    platforms: [linux]
+    cmds:
+      - task: check:not-running
+      - task: check:desktop-path
+      - task: build
+      - task: install:files
+
+  update:
+    summary: Rebuilds and replaces the files under INSTALL_ROOT; INSTALL_ROOT defaults to ~/.local and running sessions are never killed
+    platforms: [linux]
+    cmds:
+      - task: check:not-running
+      - task: check:desktop-path
+      - task: build
+      - task: install:files
+
+  install:files:
+    summary: Installs the executable, GNOME desktop file and application icon into the requested prefix
+    internal: true
+    platforms: [linux]
+    cmds:
+      - |
+        install_root="${SSHBROWSE_INSTALL_ROOT:-$HOME/.local}"
+        if [ -z "$install_root" ] || [ "$install_root" = "/" ]; then
+          echo "INSTALL_ROOT must be a non-root local installation prefix" >&2
+          exit 1
+        fi
+        source="{{.BIN_DIR}}/{{.APP_NAME}}"
+        icon_source="build/appicon.png"
+        desktop_source="build/linux/{{.APP_NAME}}.desktop"
+        bin_dir="$install_root/bin"
+        applications_dir="$install_root/share/applications"
+        icons_dir="$install_root/share/icons/hicolor/256x256/apps"
+        mkdir -p "$bin_dir" "$applications_dir" "$icons_dir"
+        binary_target="$bin_dir/{{.APP_NAME}}"
+        icon_target="$icons_dir/{{.APP_NAME}}.png"
+        desktop_target="$applications_dir/io.github.osmocomet.sshbrowse.desktop"
+        binary_tmp="$bin_dir/.{{.APP_NAME}}.tmp.$$"
+        icon_tmp="$icons_dir/.{{.APP_NAME}}.png.tmp.$$"
+        desktop_tmp="$applications_dir/.io.github.osmocomet.sshbrowse.desktop.tmp.$$"
+        cleanup() {
+          rm -f -- "$binary_tmp" "$icon_tmp" "$desktop_tmp"
+        }
+        trap cleanup EXIT
+        install -m 0755 "$source" "$binary_tmp"
+        install -m 0644 "$icon_source" "$icon_tmp"
+        SSHBROWSE_DESKTOP_EXEC="$binary_target" awk '
+          function quote_exec(value,    i, character, result, quote, backslash) {
+            quote = sprintf("%c", 34)
+            backslash = sprintf("%c", 92)
+            result = quote
+            for (i = 1; i <= length(value); i++) {
+              character = substr(value, i, 1)
+              if (character == backslash) {
+                # The desktop-entry string layer and the Exec layer each
+                # consume escapes. Four slashes preserve one literal slash.
+                result = result backslash backslash backslash backslash
+              } else if (character == quote || character == "$" || character == "`") {
+                result = result backslash backslash character
+              } else if (character == "%") {
+                result = result "%%"
+              } else {
+                result = result character
+              }
+            }
+            return result quote
+          }
+          BEGIN {
+            executable = quote_exec(ENVIRON["SSHBROWSE_DESKTOP_EXEC"])
+          }
+          /^Exec=/ {
+            print "Exec=" executable
+            next
+          }
+          { print }
+        ' "$desktop_source" > "$desktop_tmp"
+        chmod 0644 "$desktop_tmp"
+        mv -f -- "$binary_tmp" "$binary_target"
+        mv -f -- "$icon_tmp" "$icon_target"
+        mv -f -- "$desktop_tmp" "$desktop_target"
+        trap - EXIT
+    env:
+      # Keep the user-controlled prefix in the task environment. A shell
+      # parameter expansion treats its contents as data, including literal
+      # $(), quotes and backticks; interpolating it into the script would
+      # reparse those characters.
+      SSHBROWSE_INSTALL_ROOT: '{{.INSTALL_ROOT | default ""}}'
+
+  uninstall:
+    summary: Removes only the installed executable, GNOME launcher and icon under INSTALL_ROOT; profiles and preferences are preserved
+    platforms: [linux]
+    cmds:
+      - task: check:not-running
+      - |
+        install_root="${SSHBROWSE_INSTALL_ROOT:-$HOME/.local}"
+        if [ -z "$install_root" ] || [ "$install_root" = "/" ]; then
+          echo "INSTALL_ROOT must be a non-root local installation prefix" >&2
+          exit 1
+        fi
+        rm -f -- \
+          "$install_root/bin/{{.APP_NAME}}" \
+          "$install_root/share/applications/io.github.osmocomet.sshbrowse.desktop" \
+          "$install_root/share/icons/hicolor/256x256/apps/{{.APP_NAME}}.png"
+    env:
+      SSHBROWSE_INSTALL_ROOT: '{{.INSTALL_ROOT | default ""}}'
+
+  run:
+    summary: Runs the embedded native Linux application
+    platforms: [linux]
+    preconditions:
+      - sh: 'test -x "{{.BIN_DIR}}/{{.APP_NAME}}"'
+        msg: "build bin/sshbrowse first with `wails3 task build`"
+    cmds:
+      - '"{{.BIN_DIR}}/{{.APP_NAME}}"'
+    env:
+      GDK_BACKEND: wayland

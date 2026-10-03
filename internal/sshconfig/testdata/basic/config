@@ -1,0 +1,14 @@
+# Leading and inline comments are ignored.
+User global-user
+Include conf.d/*.conf
+
+Host alpha beta
+  HostName=shared.example # comment
+  Port 2200
+  IdentityFile "~/.ssh/team key"
+  ProxyJump jump
+  ForwardAgent yes
+  ForwardX11 no
+  LocalForward 8080 localhost:80
+  RemoteForward=9090:localhost:90
+  DynamicForward 1080

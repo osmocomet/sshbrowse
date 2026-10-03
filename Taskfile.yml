@@ -1,0 +1,105 @@
+version: '3'
+
+vars:
+  APP_NAME: "sshbrowse"
+  PRODUCT_NAME: "SSHBrowse"
+  PRODUCT_IDENTIFIER: "local.sshbrowse"
+  VERSION: '{{.VERSION | default "0.1.0"}}'
+  BUILD_COMMIT:
+    sh: git rev-parse HEAD
+  BIN_DIR: "bin"
+  NATIVE_PLATFORM: '{{if eq OS "darwin"}}darwin{{else if eq OS "linux"}}linux{{else if eq OS "windows"}}windows{{else}}unsupported{{end}}'
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+
+includes:
+  common: ./build/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit {{if eq .NATIVE_PLATFORM "unsupported"}}1{{else}}0{{end}}{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse supports native builds on macOS, Linux and Windows"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:build'
+
+  package:
+    summary: Packages a production build of the application
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit {{if eq .NATIVE_PLATFORM "unsupported"}}1{{else}}0{{end}}{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse supports native builds on macOS, Linux and Windows"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:package'
+
+  release:
+    summary: Builds the native release artifacts for the current platform
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit {{if eq .NATIVE_PLATFORM "unsupported"}}1{{else}}0{{end}}{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse release builds require a native macOS, Linux or Windows runner"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:release'
+
+  install:
+    desc: "macOS: wails3 task install [INSTALL_DIR=~/Applications] [RELEASE=true VERSION=x.y.z]; Fedora: wails3 task install [INSTALL_ROOT=~/.local]. Close SSHBrowse first; profiles remain."
+    summary: Installs SSHBrowse locally; use INSTALL_DIR on macOS or INSTALL_ROOT on Fedora, and close running app processes first
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit 1{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse local installation tasks are available on macOS and Linux"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:install'
+
+  update:
+    desc: "macOS: wails3 task update [INSTALL_DIR=~/Applications] [RELEASE=true VERSION=x.y.z]; Fedora: wails3 task update [INSTALL_ROOT=~/.local]. Close SSHBrowse first; profiles remain."
+    summary: Updates the local SSHBrowse installation without touching profiles or preferences; close running app processes first
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit 1{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse local update tasks are available on macOS and Linux"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:update'
+
+  uninstall:
+    desc: "macOS: wails3 task uninstall [INSTALL_DIR=~/Applications]; Fedora: wails3 task uninstall [INSTALL_ROOT=~/.local]. Removes app files only; profiles remain."
+    summary: Removes local SSHBrowse application files; profiles and preferences remain
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit 1{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse local uninstall tasks are available on macOS and Linux"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:uninstall'
+
+  test:install:
+    summary: Exercises staged install, update and uninstall paths with literal unusual destinations
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit 1{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse install regression tests are available on macOS and Linux"
+    cmds:
+      - bash build/install_tasks_test.sh
+
+  run:
+    summary: Runs the application
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit {{if eq .NATIVE_PLATFORM "unsupported"}}1{{else}}0{{end}}{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse supports native builds on macOS, Linux and Windows"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:run'
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  check:
+    summary: Runs Go and frontend checks
+    preconditions:
+      - sh: '{{if eq OS "windows"}}exit {{if eq .NATIVE_PLATFORM "unsupported"}}1{{else}}0{{end}}{{else}}test "{{.NATIVE_PLATFORM}}" != "unsupported"{{end}}'
+        msg: "SSHBrowse supports native builds on macOS, Linux and Windows"
+    cmds:
+      - task: '{{.NATIVE_PLATFORM}}:check'
+
+  verify:
+    summary: Runs checks and builds the application
+    cmds:
+      - task: check
+      - task: build

@@ -1,0 +1,279 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application natively on macOS
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          OBFUSCATED:
+            ref: .OBFUSCATED
+          DEV:
+            ref: .DEV
+    preconditions:
+      - sh: '{{if eq .OBFUSCATED "true"}}command -v garble >/dev/null 2>&1{{else}}true{{end}}'
+        msg: "garble is required for obfuscated builds"
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}"
+      - '{{if eq .OBFUSCATED "true"}}garble {{.GARBLE_ARGS}} build{{else}}go build{{end}} {{.BUILD_FLAGS}} -o "{{.OUTPUT}}.tmp"'
+      - mv "{{.OUTPUT}}.tmp" "{{.OUTPUT}}"
+    vars:
+      BUILD_FLAGS: '{{if eq .DEV "true"}}{{if or .EXTRA_TAGS (eq .OBFUSCATED "true")}}-tags {{if eq .OBFUSCATED "true"}}wails_obfuscated{{if .EXTRA_TAGS}},{{end}}{{end}}{{.EXTRA_TAGS}} {{end}}-gcflags=all="-l"{{else}}-tags production{{if eq .OBFUSCATED "true"}},wails_obfuscated{{end}}{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -ldflags="-w -s{{if eq .RELEASE "true"}} -X sshbrowse/internal/buildinfo.Version={{.VERSION}} -X sshbrowse/internal/buildinfo.Commit={{.BUILD_COMMIT}}{{end}}"{{end}}'
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
+      OUTPUT: '{{.OUTPUT | default .DEFAULT_OUTPUT}}'
+    env:
+      GOOS: darwin
+      CGO_ENABLED: 1
+      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_CFLAGS: "-mmacosx-version-min=15.0"
+      CGO_LDFLAGS: "-mmacosx-version-min=15.0"
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+
+  check:
+    summary: Runs Go and frontend checks natively on macOS
+    deps:
+      - task: common:build:frontend
+    # Match the native build so test binaries use the supported macOS floor.
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+      CGO_CFLAGS: "-mmacosx-version-min=15.0"
+      CGO_LDFLAGS: "-mmacosx-version-min=15.0"
+    cmds:
+      - go test ./...
+      - npm --prefix frontend run check
+      - npm --prefix frontend test
+
+  build:universal:
+    summary: Builds a universal macOS binary
+    platforms: [darwin]
+    deps:
+      - task: build
+        vars:
+          ARCH: amd64
+          OUTPUT: "{{.BIN_DIR}}/{{.APP_NAME}}-amd64"
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+      - task: build
+        vars:
+          ARCH: arm64
+          OUTPUT: "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+    cmds:
+      - lipo -create -output "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}-amd64" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
+      - rm "{{.BIN_DIR}}/{{.APP_NAME}}-amd64" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64"
+
+  package:
+    summary: Packages the application into a `.app` bundle
+    deps:
+      - task: build
+    cmds:
+      - task: create:app:bundle
+
+  package:universal:
+    summary: Packages a universal `.app` bundle
+    deps:
+      - task: build:universal
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+    cmds:
+      - task: create:app:bundle
+
+  release:
+    summary: Builds the universal macOS app, DMG and updater archive
+    platforms: [darwin]
+    deps:
+      - task: package:universal
+        vars:
+          RELEASE: "true"
+          VERSION: '{{.VERSION}}'
+    cmds:
+      - task: create:dmg
+        vars:
+          DMG_OUTPUT: "bin/SSHBrowse-macOS-universal.dmg"
+      - task: create:update:zip
+        vars:
+          UPDATE_OUTPUT: "bin/SSHBrowse-macOS-universal.zip"
+
+  package:dmg:
+    summary: Packages the application into a `.dmg`
+    deps:
+      - task: package
+    cmds:
+      - task: create:dmg
+
+  create:dmg:
+    summary: Creates a configurable `.dmg`
+    platforms: [darwin]
+    cmds:
+      - |
+        set -euo pipefail
+        generated="{{.BIN_DIR}}/{{.APP_NAME}}.dmg"
+        rm -f -- "$generated" "{{.DMG_OUTPUT}}"
+        wails3 tool package --format dmg --name "{{.APP_NAME}}" --out "{{.BIN_DIR}}" \
+          --volume-icon "{{.DMG_VOLUME_ICON}}" \
+          --window-width "{{.DMG_WINDOW_WIDTH}}" \
+          --window-height "{{.DMG_WINDOW_HEIGHT}}" \
+          {{if .DMG_FILES}}--files "{{.DMG_FILES}}"{{end}}
+        if [ "$generated" != "{{.DMG_OUTPUT}}" ]; then
+          mv -- "$generated" "{{.DMG_OUTPUT}}"
+        fi
+    vars:
+      DMG_VOLUME_ICON: '{{.DMG_VOLUME_ICON | default "build/darwin/icons.icns"}}'
+      DMG_WINDOW_WIDTH: '{{.DMG_WINDOW_WIDTH | default "540"}}'
+      DMG_WINDOW_HEIGHT: '{{.DMG_WINDOW_HEIGHT | default "380"}}'
+      DMG_FILES: '{{.DMG_FILES | default ""}}'
+      DMG_OUTPUT: '{{.DMG_OUTPUT | default "bin/sshbrowse.dmg"}}'
+
+  create:update:zip:
+    summary: Creates the universal app archive consumed by the Wails updater
+    platforms: [darwin]
+    cmds:
+      - rm -f "{{.UPDATE_OUTPUT}}"
+      - ditto -c -k --sequesterRsrc --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.UPDATE_OUTPUT}}"
+    vars:
+      UPDATE_OUTPUT: '{{.UPDATE_OUTPUT | default "bin/SSHBrowse-macOS-universal.zip"}}'
+
+  check:not-running:
+    summary: Refuses an install, update or uninstall while SSHBrowse is running
+    internal: true
+    platforms: [darwin]
+    cmds:
+      - |
+        if pgrep -x "{{.APP_NAME}}" >/dev/null 2>&1; then
+          echo "SSHBrowse is running; close it before installing, updating, or uninstalling. No process was stopped." >&2
+          exit 1
+        else
+          exit 0
+        fi
+
+  install:
+    summary: Installs bin/sshbrowse.app into INSTALL_DIR/sshbrowse.app; pass RELEASE=true VERSION=x.y.z to test the updater locally
+    platforms: [darwin]
+    cmds:
+      - task: check:not-running
+      - task: package
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+      - task: install:bundle
+
+  update:
+    summary: Repackages and replaces INSTALL_DIR/sshbrowse.app; pass RELEASE=true VERSION=x.y.z to test the updater locally
+    platforms: [darwin]
+    cmds:
+      - task: check:not-running
+      - task: package
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+      - task: install:bundle
+
+  install:bundle:
+    summary: Copies the packaged app bundle into the requested application directory
+    internal: true
+    platforms: [darwin]
+    cmds:
+      - |
+        install_dir="${SSHBROWSE_INSTALL_DIR:-$HOME/Applications}"
+        source="{{.BIN_DIR}}/{{.APP_NAME}}.app"
+        target="$install_dir/{{.APP_NAME}}.app"
+        if [ -z "$install_dir" ] || [ "$install_dir" = "/" ]; then
+          echo "INSTALL_DIR must be a non-root application directory" >&2
+          exit 1
+        fi
+        if [ ! -d "$source" ]; then
+          echo "packaged app not found at $source" >&2
+          exit 1
+        fi
+        mkdir -p "$install_dir"
+        temporary="$install_dir/.{{.APP_NAME}}.app.tmp.$$"
+        trap 'rm -rf -- "$temporary"' EXIT
+        ditto "$source" "$temporary"
+        rm -rf -- "$target"
+        mv -- "$temporary" "$target"
+        trap - EXIT
+    env:
+      # Keep the user-controlled directory in the task environment. A shell
+      # parameter expansion treats its contents as data, including literal
+      # $(), quotes and backticks; interpolating it into the script would
+      # reparse those characters.
+      SSHBROWSE_INSTALL_DIR: '{{.INSTALL_DIR | default ""}}'
+
+  uninstall:
+    summary: Removes the SSHBrowse app bundle; INSTALL_DIR defaults to ~/Applications and profiles/window preferences are preserved
+    platforms: [darwin]
+    cmds:
+      - task: check:not-running
+      - |
+        install_dir="${SSHBROWSE_INSTALL_DIR:-$HOME/Applications}"
+        target="$install_dir/{{.APP_NAME}}.app"
+        if [ -z "$install_dir" ] || [ "$install_dir" = "/" ]; then
+          echo "INSTALL_DIR must be a non-root application directory" >&2
+          exit 1
+        fi
+        rm -rf -- "$target"
+    env:
+      SSHBROWSE_INSTALL_DIR: '{{.INSTALL_DIR | default ""}}'
+
+  create:app:bundle:
+    summary: Creates an `.app` bundle
+    deps:
+      - task: common:prepare:release-assets
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - |
+        if [ -f build/darwin/Assets.car ]; then
+          cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+        else
+          rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources/Assets.car"
+        fi
+      - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
+      - cp NOTICE docs/legal/THIRD_PARTY_NOTICES.txt "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - task: codesign:adhoc
+
+  codesign:adhoc:
+    summary: Ad-hoc signs the app bundle
+    internal: true
+    cmds:
+      - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
+
+  run:
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/MacOS"
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources"
+      - cp build/darwin/icons.icns "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources"
+      - |
+        if [ -f build/darwin/Assets.car ]; then
+          cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources"
+        else
+          rm -f "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources/Assets.car"
+        fi
+      - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/MacOS"
+      - cp build/darwin/Info.dev.plist "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Info.plist"
+      - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app"
+      - '"{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/MacOS/{{.APP_NAME}}"'
+
+  sign:
+    summary: Signs the application with Developer ID
+    deps:
+      - task: package
+    cmds:
+      - wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.app" {{.CLI_ARGS}}
+
+  sign:notarize:
+    summary: Signs and notarizes the application
+    deps:
+      - task: package
+    cmds:
+      - wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.app" --notarize {{.CLI_ARGS}}

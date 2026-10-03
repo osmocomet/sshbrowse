@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SSHBrowse
+Exec=sshbrowse
+Icon=sshbrowse
+Categories=Network;RemoteAccess;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false

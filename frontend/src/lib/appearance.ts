@@ -1,0 +1,181 @@
+import type { ITheme } from "@xterm/xterm";
+
+export type ThemeName = "warm" | "classic" | "moss" | "fjord" | "oled" | "contrast";
+export type TerminalColors = "follow" | "neutral";
+export type TerminalFontName = "system" | "jetbrains" | "menlo" | "consolas" | "dejavu";
+
+const systemTerminalFontFamily = '"SF Mono", "SFMono-Regular", Menlo, Consolas, "Cascadia Mono", "Liberation Mono", "DejaVu Sans Mono", monospace';
+
+const terminalFontFamilies: Record<TerminalFontName, string> = {
+  system: systemTerminalFontFamily,
+  jetbrains: `"JetBrains Mono", ${systemTerminalFontFamily}`,
+  menlo: "Menlo, ui-monospace, \"SF Mono\", monospace",
+  consolas: `Consolas, ${systemTerminalFontFamily}`,
+  dejavu: `"DejaVu Sans Mono", ${systemTerminalFontFamily}`,
+};
+
+// Keep each background and foreground aligned with app.css's terminal roles; other entries define ANSI colors.
+const terminalThemes: Record<ThemeName, ITheme> = {
+  warm: {
+    background: "#171614",
+    foreground: "#e9e4d9",
+    cursor: "#d8b76e",
+    cursorAccent: "#171614",
+    selectionBackground: "rgba(216, 183, 110, 0.34)",
+    selectionForeground: "#ffffff",
+    black: "#19211c",
+    red: "#d8978d",
+    green: "#9fbd9f",
+    yellow: "#e7ca89",
+    blue: "#a6bed4",
+    magenta: "#c8acce",
+    cyan: "#a5cbc0",
+    white: "#e9e4d9",
+    brightBlack: "#938f83",
+    brightRed: "#e8aaa0",
+    brightGreen: "#b5d2b4",
+    brightYellow: "#f1d89c",
+    brightBlue: "#bbd0e1",
+    brightMagenta: "#dec1df",
+    brightCyan: "#bbded2",
+    brightWhite: "#ffffff",
+  },
+  classic: {
+    background: "#191e21",
+    foreground: "#e2e7e9",
+    cursor: "#e2e7e9",
+  },
+  moss: {
+    background: "#171d19",
+    foreground: "#e6eadf",
+    cursor: "#afc4aa",
+    cursorAccent: "#171d19",
+    selectionBackground: "rgba(167, 188, 162, 0.32)",
+    selectionForeground: "#ffffff",
+    black: "#1a201c",
+    red: "#dca09b",
+    green: "#aac9a8",
+    yellow: "#dfc88f",
+    blue: "#a5bfd1",
+    magenta: "#c9b2cb",
+    cyan: "#a2ccc1",
+    white: "#e6eadf",
+    brightBlack: "#89998d",
+    brightRed: "#eab4ad",
+    brightGreen: "#bfdabc",
+    brightYellow: "#ebd9a8",
+    brightBlue: "#bed1df",
+    brightMagenta: "#dac8dc",
+    brightCyan: "#bbe0d3",
+    brightWhite: "#ffffff",
+  },
+  fjord: {
+    background: "#0d191d",
+    foreground: "#e1efed",
+    cursor: "#65c7ba",
+    cursorAccent: "#0d191d",
+    selectionBackground: "rgba(101, 199, 186, 0.32)",
+    selectionForeground: "#ffffff",
+    black: "#132126",
+    red: "#e59b99",
+    green: "#92c9ad",
+    yellow: "#d9c891",
+    blue: "#99bdd7",
+    magenta: "#c3add0",
+    cyan: "#78d1c5",
+    white: "#e1efed",
+    brightBlack: "#829f9d",
+    brightRed: "#efaaa7",
+    brightGreen: "#a9ddc1",
+    brightYellow: "#e8d8a3",
+    brightBlue: "#b4d2e5",
+    brightMagenta: "#d8c0de",
+    brightCyan: "#9be4d8",
+    brightWhite: "#ffffff",
+  },
+  oled: {
+    background: "#000000",
+    foreground: "#ebece6",
+    cursor: "#e8c878",
+    cursorAccent: "#000000",
+    selectionBackground: "rgba(173, 184, 143, 0.38)",
+    selectionForeground: "#ffffff",
+    black: "#101214",
+    red: "#ff7474",
+    green: "#91dda2",
+    yellow: "#ffd276",
+    blue: "#7bbcff",
+    magenta: "#dda2ff",
+    cyan: "#78e0e3",
+    white: "#ebece6",
+    brightBlack: "#858d92",
+    brightRed: "#ff9292",
+    brightGreen: "#adf0b8",
+    brightYellow: "#ffe29a",
+    brightBlue: "#a0d0ff",
+    brightMagenta: "#ecc0ff",
+    brightCyan: "#9af0f0",
+    brightWhite: "#ffffff",
+  },
+  contrast: {
+    background: "#000000",
+    foreground: "#ffffff",
+    cursor: "#ffffff",
+    cursorAccent: "#000000",
+    selectionBackground: "rgba(62, 142, 255, 0.52)",
+    selectionForeground: "#ffffff",
+    black: "#101010",
+    red: "#ff7777",
+    green: "#8cffaa",
+    yellow: "#ffe36e",
+    blue: "#80bcff",
+    magenta: "#f0a2ff",
+    cyan: "#75f0f2",
+    white: "#f3f3f3",
+    brightBlack: "#a5a5a5",
+    brightRed: "#ffaaaa",
+    brightGreen: "#b4ffc6",
+    brightYellow: "#fff2a3",
+    brightBlue: "#add4ff",
+    brightMagenta: "#ffd0ff",
+    brightCyan: "#b4ffff",
+    brightWhite: "#ffffff",
+  },
+};
+
+const neutralTerminalTheme: ITheme = {
+  background: "#000000",
+  foreground: "#e5e7e9",
+  cursor: "#e5e7e9",
+  cursorAccent: "#000000",
+  selectionBackground: "rgba(166, 185, 195, 0.36)",
+  selectionForeground: "#ffffff",
+  black: "#15191b",
+  red: "#e39898",
+  green: "#a2c9a7",
+  yellow: "#dcc88c",
+  blue: "#9cbcd7",
+  magenta: "#c8afd2",
+  cyan: "#9dcdcc",
+  white: "#e5e7e9",
+  brightBlack: "#89949b",
+  brightRed: "#f0abab",
+  brightGreen: "#b9dcbb",
+  brightYellow: "#ead9a5",
+  brightBlue: "#b8d2e6",
+  brightMagenta: "#dac5e1",
+  brightCyan: "#b8dfdd",
+  brightWhite: "#ffffff",
+};
+
+export function terminalThemeFor(themeName: ThemeName, terminalColors: TerminalColors): ITheme {
+  return terminalColors === "neutral" ? neutralTerminalTheme : terminalThemes[themeName];
+}
+
+export function terminalFontFamilyFor(name: TerminalFontName): string {
+  return terminalFontFamilies[name];
+}
+
+export function terminalMinimumContrastRatio(themeName: ThemeName, terminalColors: TerminalColors): number {
+  return themeName === "contrast" ? 7 : themeName === "classic" && terminalColors === "follow" ? 1 : 4.5;
+}
