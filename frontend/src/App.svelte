@@ -1812,6 +1812,7 @@
 
 {#if editing}
   <ConnectionForm
+    {interfaceScale}
     bind:this={connectionDialog}
     connection={editing.connection}
     connections={connections.list}

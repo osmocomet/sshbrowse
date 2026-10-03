@@ -31,3 +31,7 @@ test("buttons, checkboxes, and textareas keep their native Enter behavior", () =
   assert.equal(shouldSaveOnEnter(enterEvent(), { kind: "textarea" }), false);
   assert.equal(shouldSaveOnEnter(enterEvent(), { kind: "input", type: "checkbox" }), false);
 });
+
+test("Enter in a folder datalist keeps native suggestion handling", () => {
+  assert.equal(shouldSaveOnEnter(enterEvent(), { kind: "input", type: "text", hasDatalist: true }), false);
+});

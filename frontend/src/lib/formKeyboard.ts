@@ -1,5 +1,5 @@
 export type FormEnterTarget =
-  | { kind: "input"; type: string }
+  | { kind: "input"; type: string; hasDatalist?: boolean }
   | { kind: "textarea" }
   | { kind: "button" }
   | null;
@@ -17,5 +17,5 @@ export function shouldSaveOnEnter(
   if (event.key !== "Enter" || isComposingKey(event)) {
     return false;
   }
-  return target?.kind === "input" && target.type !== "checkbox";
+  return target?.kind === "input" && target.type !== "checkbox" && !target.hasDatalist;
 }
