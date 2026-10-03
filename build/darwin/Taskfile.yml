@@ -239,7 +239,7 @@ tasks:
         fi
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
-      - cp NOTICE docs/legal/THIRD_PARTY_NOTICES.txt "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
+      - cp LICENSE docs/legal/THIRD_PARTY_NOTICES.txt "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
       - task: codesign:adhoc
 
   codesign:adhoc:

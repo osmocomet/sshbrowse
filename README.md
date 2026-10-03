@@ -61,4 +61,4 @@ SSHBrowse is free for personal, non-commercial use. Professional, workplace, or 
 
 The source code is publicly available for inspection and private personal modification. Independent redistribution, including modified versions, requires authorization; GitHub's viewing and forking rights still apply.
 
-See [NOTICE](NOTICE) for SSHBrowse's terms and [THIRD_PARTY_NOTICES.txt](docs/legal/THIRD_PARTY_NOTICES.txt) for third-party licenses. Run `sshbrowse --licenses` to print both.
+See [LICENSE](LICENSE) for SSHBrowse's terms and [THIRD_PARTY_NOTICES.txt](docs/legal/THIRD_PARTY_NOTICES.txt) for third-party licenses. Run `sshbrowse --licenses` to print both.

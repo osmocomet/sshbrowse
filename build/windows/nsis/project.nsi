@@ -55,7 +55,7 @@ Section
   !insertmacro wails.setShellContext
   SetOutPath $INSTDIR
   !insertmacro wails.files
-  File /oname=SSHBrowse-NOTICE.txt "..\..\..\NOTICE"
+  File /oname=SSHBrowse-LICENSE.txt "..\..\..\LICENSE"
   File /oname=SSHBrowse-THIRD-PARTY-NOTICES.txt "..\..\..\docs\legal\THIRD_PARTY_NOTICES.txt"
   CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
   CreateShortcut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -66,6 +66,7 @@ Section "uninstall"
   !insertmacro wails.setShellContext
   RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"
   Delete "$INSTDIR\${PRODUCT_EXECUTABLE}"
+  Delete "$INSTDIR\SSHBrowse-LICENSE.txt"
   Delete "$INSTDIR\SSHBrowse-NOTICE.txt"
   Delete "$INSTDIR\SSHBrowse-THIRD-PARTY-NOTICES.txt"
   Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"

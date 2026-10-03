@@ -17,7 +17,7 @@ func TestWriteLicenseDocuments(t *testing.T) {
 	if !handled {
 		t.Fatal("--licenses was not handled")
 	}
-	notice, err := os.ReadFile("NOTICE")
+	license, err := os.ReadFile("LICENSE")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,12 +25,12 @@ func TestWriteLicenseDocuments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := fmt.Sprintf("===== NOTICE =====\n%s\n===== THIRD_PARTY_NOTICES.txt =====\n%s\n", notice, thirdPartyNotices)
+	want := fmt.Sprintf("===== LICENSE =====\n%s\n===== THIRD_PARTY_NOTICES.txt =====\n%s\n", license, thirdPartyNotices)
 	if output.String() != want {
-		t.Error("license output must contain the complete notice followed by the complete third-party notices")
+		t.Error("license output must contain the complete license followed by the complete third-party notices")
 	}
 	for _, marker := range []string{
-		"===== NOTICE =====",
+		"===== LICENSE =====",
 		"Copyright © 2026. All rights reserved.",
 		"SSHBrowse is free for personal, non-commercial use.",
 		"Professional, workplace, or commercial use requires a paid license.",

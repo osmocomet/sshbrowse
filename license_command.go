@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-//go:embed NOTICE docs/legal/THIRD_PARTY_NOTICES.txt
+//go:embed LICENSE docs/legal/THIRD_PARTY_NOTICES.txt
 var licenseDocuments embed.FS
 
 func writeLicenseDocuments(args []string, output io.Writer) (bool, error) {
@@ -18,7 +18,7 @@ func writeLicenseDocuments(args []string, output io.Writer) (bool, error) {
 		path string
 		name string
 	}{
-		{path: "NOTICE", name: "NOTICE"},
+		{path: "LICENSE", name: "LICENSE"},
 		{path: "docs/legal/THIRD_PARTY_NOTICES.txt", name: "THIRD_PARTY_NOTICES.txt"},
 	}
 	for _, document := range documents {
