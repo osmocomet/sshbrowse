@@ -4,13 +4,13 @@ SSHBrowse is a cross-platform desktop app for managing SSH, SFTP, and local term
 
 Save and organize connections, open sessions in tabs or tiles, and send commands or live input to multiple terminals at once. SSHBrowse runs on macOS, Windows, and Linux.
 
-SSHBrowse is currently in beta.
+SSHBrowse is currently in beta. Feedback, bug reports, and contributions are welcome.
 
 [Releases](https://github.com/osmocomet/sshbrowse/releases) · [Report a bug](https://github.com/osmocomet/sshbrowse/issues/new/choose) · [Contribute](CONTRIBUTING.md)
 
 [![Four SSHBrowse sessions connected to an EVPN network lab in a tiled workspace](assets/network-lab.png)](assets/network-lab.png)
 
-## Built on OpenSSH
+## Your OpenSSH, not ours
 
 The actual SSH and SFTP connections, authentication, host-key verification, and SSH configuration are handled by your system's `ssh` and `sftp` clients.
 
@@ -27,13 +27,13 @@ SSHBrowse does not implement the SSH protocol itself, proxy SSH traffic through 
 
 ## Platforms
 
-SSHBrowse provides native packages for macOS, Windows, and Linux.
+SSHBrowse provides native packages for macOS, Windows, and Linux. The following platforms have been tested with packaged releases:
 
 | Platform | Package | Notes |
 | --- | --- | --- |
-| macOS 15+ (Apple silicon and Intel) | Universal DMG | Tested on Apple silicon. Ad-hoc signed; Gatekeeper may require manual approval because the app is not notarized. |
-| Linux x86-64 | DEB or RPM | Tested on Fedora 44 and Ubuntu 26.04 with GNOME/Wayland. Other distributions need GTK4 and WebKitGTK 6.0. Packages are unsigned. |
-| Windows 11 x64 | Per-user installer | Requires the Windows OpenSSH Client. Requires Microsoft Edge WebView2 Runtime, normally included with Windows 11; Setup stops if it is missing. The installer is unsigned; SmartScreen may warn. |
+| macOS 15+ (Apple silicon and Intel) | Universal DMG | Native packaged acceptance performed on Apple silicon. Ad-hoc signed, not notarized; Gatekeeper may require manual approval. |
+| Linux x86-64 | DEB or RPM | Fedora 44 GNOME/Wayland RPM and Ubuntu 26.04 GNOME/Wayland DEB accepted natively. Other distributions need GTK4 and WebKitGTK 6.0 and are less tested. Local packages are not repository-signed. |
+| Windows 11 x64 only | Per-user installer | Native acceptance has covered the installer and core SSH/SFTP behavior. Requires the Windows OpenSSH Client and Microsoft Edge WebView2 Runtime, normally included with Windows 11; Setup stops if WebView2 is missing. SSHBrowse does not bundle, download, or install WebView2. The installer is unsigned; SmartScreen may warn. |
 
 For release downloads, check the architecture and compare the SHA-256 hash with `SHA256SUMS`.
 
