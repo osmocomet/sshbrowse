@@ -26,6 +26,18 @@ func newGuardedUpdaterHost(wailsApp *application.App, quitGuard *QuitGuard, coor
 }
 
 func (h *guardedUpdaterHost) Emit(name string, data ...any) bool {
+	// All checks report through update:check-result. Downloads and restarts
+	// retain their Wails events; check errors are handled by the shared runner.
+	switch name {
+	case updater.EventCheckStarted, updater.EventNoUpdate, updater.EventUpdateAvailable:
+		return true
+	case updater.EventError:
+		if len(data) > 0 {
+			if info, ok := data[0].(updater.ErrorInfo); ok && info.Stage == updater.StageCheck {
+				return true
+			}
+		}
+	}
 	return h.app.Event.Emit(name, data...)
 }
 

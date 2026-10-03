@@ -49,6 +49,8 @@ After launching SSHBrowse, you can:
 
 ## Help and contributing
 
+Packaged releases check GitHub for updates at startup, at most once every 24 hours. Disable this in **Settings > General > Updates**. Downloads and restarts require your approval; Linux notifications link to the release so you can install the updated DEB or RPM package.
+
 For connection problems, try the same destination with system OpenSSH (`ssh alias` or `ssh user@host`). Use the [bug report form](https://github.com/osmocomet/sshbrowse/issues/new/choose) for bugs and [SECURITY.md](SECURITY.md) for private vulnerability reports. Redact credentials and private host details.
 
 Bug reports, suggestions, and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, contribution terms, and guidance on discussing larger changes first.

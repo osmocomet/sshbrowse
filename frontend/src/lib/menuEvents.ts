@@ -5,6 +5,9 @@ export const updateInfoRequestEvent = "update:info-request";
 export const updateInfoEvent = "update:info";
 export const updateDownloadRequestEvent = "update:download-request";
 export const updateRestartRequestEvent = "wails:updater:user:restart";
+export const startupUpdateCheckEvent = "update:startup-check";
+export const updateCheckResultEvent = "update:check-result";
+export const updateCheckStartedEvent = "update:check-started";
 
 export interface UpdateInfo {
   version: string;

@@ -46,3 +46,29 @@ func TestGuardedUpdaterHostRegistersRestartThroughCoordinatorAndQuitGuard(t *tes
 		t.Fatal("failed restart authorized the application to quit")
 	}
 }
+
+func TestGuardedUpdaterHostUsesSharedCheckResultsAndPreservesDownloadErrors(t *testing.T) {
+	// A suppressed event must never reach the application, even if its
+	// frontend is unavailable. Download errors still use the normal path.
+	host := &guardedUpdaterHost{}
+	for _, name := range []string{updater.EventCheckStarted, updater.EventNoUpdate, updater.EventUpdateAvailable} {
+		host.Emit(name)
+	}
+	host.Emit(updater.EventError, updater.ErrorInfo{Stage: updater.StageCheck, Message: "check failure"})
+
+	wailsApp := application.New(application.Options{Name: "SSHBrowse"})
+	host.app = wailsApp
+	errorsSeen := make(chan updater.ErrorInfo, 2)
+	stop := wailsApp.Event.On(updater.EventError, func(event *application.CustomEvent) {
+		if info, ok := event.Data.(updater.ErrorInfo); ok && info.Message == "download failure" {
+			errorsSeen <- info
+		}
+	})
+	t.Cleanup(stop)
+	host.Emit(updater.EventError, updater.ErrorInfo{Stage: updater.StageDownload, Message: "download failure"})
+	select {
+	case <-errorsSeen:
+	case <-time.After(time.Second):
+		t.Fatal("download error was suppressed")
+	}
+}

@@ -7,7 +7,7 @@
   import Radio from "@lucide/svelte/icons/radio";
   import Ungroup from "@lucide/svelte/icons/ungroup";
   import X from "@lucide/svelte/icons/x";
-  import { Clipboard, Events, Window as WailsWindow } from "@wailsio/runtime";
+  import { Browser, Clipboard, Events, Window as WailsWindow } from "@wailsio/runtime";
   import * as Sessions from "../bindings/sshbrowse/internal/app/sessions";
   import type { Connection } from "../bindings/sshbrowse/internal/profile/models";
   import Sidebar from "./lib/Sidebar.svelte";
@@ -21,6 +21,8 @@
   import SSHConfigImport from "./lib/SSHConfigImport.svelte";
   import CloseConfirmDialog from "./lib/CloseConfirmDialog.svelte";
   import SettingsPage from "./lib/SettingsPage.svelte";
+  import UpdateNotice from "./lib/UpdateNotice.svelte";
+  import { canCheckForUpdates, claimStartupUpdateCheck, githubReleaseURL, type UpdateCheckResult, type UpdateRelease } from "./lib/updates";
   import type { TerminalColors, TerminalFontName, ThemeName } from "./lib/appearance";
   import {
     currentPlatform,
@@ -52,6 +54,9 @@
     updateInfoEvent,
     updateInfoRequestEvent,
     updateRestartRequestEvent,
+    startupUpdateCheckEvent,
+    updateCheckResultEvent,
+    updateCheckStartedEvent,
     type UpdateInfo,
     type EditMenuAction,
   } from "./lib/menuEvents";
@@ -184,6 +189,11 @@
   let updateBusy = $state(false);
   let updateAvailable = $state(false);
   let updateReady = $state(false);
+  let checkUpdatesOnStartup = $state(true);
+  let updateReleaseURL = $state("");
+  let updatePrompt = $state<UpdateRelease | null>(null);
+  let startupCheckScheduled = false;
+  let startupPromptWanted = true;
   let dialogReturnFocus: HTMLElement | null = null;
   const shortcutPlatform = currentPlatform();
   const macWindowChrome = shortcutPlatform === "mac";
@@ -469,6 +479,7 @@
     if (modalDialogOpen() || scanningImport || broadcastSending) {
       return;
     }
+    updatePrompt = null;
     // A completed check failure should not look like a new check when Settings reopens.
     if (!settingsOpen && !updateBusy && updateError && !updateReady) {
       updateStatus = "";
@@ -898,6 +909,8 @@
   }
 
   function emitCheckForUpdates() {
+    startupPromptWanted = false;
+    updatePrompt = null;
     if (updateReady) {
       openSettings();
       return;
@@ -909,7 +922,28 @@
     });
   }
 
+  function setCheckUpdatesOnStartup(enabled: boolean) {
+    checkUpdatesOnStartup = enabled;
+    persistPreference(preferenceKeys.checkUpdatesOnStartup, String(enabled));
+    if (!enabled) updatePrompt = null;
+  }
+
+  function openUpdateRelease() {
+    if (!updateReleaseURL) return;
+    Browser.OpenURL(updateReleaseURL).catch((error) => {
+      updateStatus = `Could not open release notes: ${errorMessage(error)}`;
+      updateError = true;
+    });
+  }
+
+  function downloadFromUpdateNotice() {
+    updatePrompt = null;
+    openSettings();
+    emitDownloadUpdate();
+  }
+
   function emitDownloadUpdate() {
+    updatePrompt = null;
     Events.Emit(updateDownloadRequestEvent).catch((error) => {
       updateStatus = `Could not start the update download: ${errorMessage(error)}`;
       updateError = true;
@@ -1237,6 +1271,7 @@
       terminalPasteWarningsDisabled = preferences.terminalPasteWarningsDisabled;
       rightClickToPaste = preferences.rightClickToPaste;
       copyOnSelection = preferences.copyOnSelection;
+      checkUpdatesOnStartup = preferences.checkUpdatesOnStartup;
       themeName = preferences.themeName;
       terminalColors = preferences.terminalColors;
       uiSize = preferences.uiSize;
@@ -1278,29 +1313,60 @@
     const offEditMenu = Events.On(editMenuEvent, handleEditMenuAction);
     const offUpdateInfo = Events.On(updateInfoEvent, (event: { data: UpdateInfo }) => {
       updateInfo = event.data;
+      if (!startupCheckScheduled && canCheckForUpdates(updateInfo.availability)) {
+        startupCheckScheduled = true;
+        let shouldCheck = checkUpdatesOnStartup;
+        try {
+          shouldCheck = claimStartupUpdateCheck(localStorage, checkUpdatesOnStartup);
+        } catch {
+          // A restricted WebView may deny access to localStorage itself.
+        }
+        if (shouldCheck) {
+          // Automatic failures stay quiet; the manual check remains available.
+          Events.Emit(startupUpdateCheckEvent).catch(() => {});
+        }
+      }
     });
-    const offUpdateStarted = Events.On("wails:updater:check-started", () => {
+    const offUpdateCheckResult = Events.On(updateCheckResultEvent, (event: { data: UpdateCheckResult }) => {
+      const result = event.data;
+      if (!result.automatic) {
+        startupPromptWanted = false;
+        updatePrompt = null;
+      }
+      // A late background result must not replace a manual check or download.
+      if (result.automatic && (!startupPromptWanted || updateBusy || updateReady)) return;
+      if (result.error) {
+        if (!result.automatic) {
+          updateStatus = `Update check failed: ${result.error}`;
+          updateError = true;
+          if (result.checked) updateBusy = false;
+        }
+        return;
+      }
+      if (!result.checked) return;
+      updateStatus = result.version ? `Version ${result.version} is available.` : "SSHBrowse is up to date.";
+      updateAvailable = Boolean(result.version);
+      updateError = false;
+      updateBusy = false;
+      updateReleaseURL = "";
+      if (result.version) {
+        updateReleaseURL = githubReleaseURL(result.releaseURL);
+        if (result.automatic && startupPromptWanted && checkUpdatesOnStartup && updateReleaseURL) {
+          updatePrompt = { version: result.version, releaseURL: updateReleaseURL };
+        }
+      }
+    });
+    const offUpdateStarted = Events.On(updateCheckStartedEvent, () => {
+      startupPromptWanted = false;
+      updatePrompt = null;
       updateStatus = "Checking for updates…";
       updateError = false;
       updateBusy = true;
       updateAvailable = false;
-      updateReady = false;
-    });
-    const offNoUpdate = Events.On("wails:updater:no-update", () => {
-      updateStatus = "SSHBrowse is up to date.";
-      updateError = false;
-      updateBusy = false;
-      updateAvailable = false;
-      updateReady = false;
-    });
-    const offUpdateAvailable = Events.On("wails:updater:update-available", (event: { data: { version?: string } }) => {
-      updateStatus = event.data?.version ? `Version ${event.data.version} is available.` : "An update is available.";
-      updateError = false;
-      updateBusy = false;
-      updateAvailable = true;
-      updateReady = false;
+      updateReleaseURL = "";
     });
     const offDownloadStarted = Events.On("wails:updater:download-started", () => {
+      updatePrompt = null;
       updateStatus = "Downloading update…";
       updateError = false;
       updateBusy = true;
@@ -1320,6 +1386,7 @@
       updateStatus = "Installing update…";
     });
     const offUpdateReady = Events.On("wails:updater:update-ready", () => {
+      updatePrompt = null;
       updateStatus = "Update ready. Restart to use the new version.";
       updateError = false;
       updateBusy = false;
@@ -1354,9 +1421,8 @@
       offToggleTiling();
       offEditMenu();
       offUpdateInfo();
+      offUpdateCheckResult();
       offUpdateStarted();
-      offNoUpdate();
-      offUpdateAvailable();
       offDownloadStarted();
       offDownloadProgress();
       offVerifying();
@@ -1715,6 +1781,10 @@
       {updateBusy}
       {updateAvailable}
       {updateReady}
+      {checkUpdatesOnStartup}
+      {updateReleaseURL}
+      onstartupupdatechange={setCheckUpdatesOnStartup}
+      onreleasenotes={openUpdateRelease}
       oncheckforupdates={emitCheckForUpdates}
       ondownloadupdate={emitDownloadUpdate}
       onrestartupdate={emitRestartUpdate}
@@ -1727,6 +1797,15 @@
       onrightclickpastechange={setRightClickToPaste}
       oncopyselectionchange={setCopyOnSelection}
       onclose={closeSettings}
+    />
+  {/if}
+  {#if updatePrompt && updateAvailable && !updateBusy && !updateReady && !modalDialogOpen() && !scanningImport && !broadcastSending}
+    <UpdateNotice
+      release={updatePrompt}
+      canDownload={updateInfo?.availability === "supported"}
+      ondownload={downloadFromUpdateNotice}
+      onreleasenotes={openUpdateRelease}
+      onlater={() => { updatePrompt = null; }}
     />
   {/if}
 </div>

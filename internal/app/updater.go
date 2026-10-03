@@ -97,37 +97,6 @@ func ConfigureUpdater(wailsApp *application.App, executablePath string, quitGuar
 	return true, coordinator, nil
 }
 
-// NewUpdateAction returns the single user-triggered update action used by
-// native menus and the frontend menu.
-func NewUpdateAction(wailsApp *application.App, supported bool, coordinator *updateCoordinator) func() {
-	return func() {
-		wailsApp.Event.Emit(EventMenuSettings)
-		if !supported {
-			return
-		}
-
-		go runUpdateCheck(wailsApp, coordinator)
-	}
-}
-
-func runUpdateCheck(wailsApp *application.App, coordinator *updateCoordinator) {
-	if coordinator == nil {
-		return
-	}
-	started, err := coordinator.runUpdate(func() error {
-		if wailsApp.Updater.State() == updater.StateReady {
-			return nil
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-		_, err := wailsApp.Updater.Check(ctx)
-		return err
-	})
-	if started && err != nil {
-		log.Printf("Check for updates: %v", err)
-	}
-}
-
 func runUpdateDownload(wailsApp *application.App, coordinator *updateCoordinator) {
 	if coordinator == nil {
 		return
