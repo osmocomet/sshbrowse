@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { connectionFormSections } from "./connectionForm";
+  import { connectionDialogBounds, connectionFormSections, forwardingSummary, portForwardingSummary, revealInvalidConnectionField } from "./connectionForm";
   import JumpHostField from "./JumpHostField.svelte";
   import { untrack } from "svelte";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
@@ -14,6 +14,7 @@
     mode,
     folders,
     connections,
+    interfaceScale,
     onsave,
     ondelete,
     onclose,
@@ -22,10 +23,16 @@
     mode: ConnectionFormMode;
     folders: string[];
     connections: Connection[];
+    interfaceScale: number;
     onsave: (connection: Connection, connectAfterSave: boolean) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
     onclose: () => void;
   } = $props();
+
+  let viewportWidth = $state(window.innerWidth);
+  let viewportHeight = $state(window.innerHeight);
+
+  let dialogBounds = $derived(connectionDialogBounds(viewportWidth, viewportHeight, interfaceScale));
 
   let dialog: HTMLDialogElement;
   let form: HTMLFormElement;
@@ -45,6 +52,7 @@
   let error = $state("");
   let submitting = $state(false);
   let choosingIdentity = $state(false);
+  let folderEnterPending = false;
 
   // A duplicate creates a new saved profile too; keep its existing connect action.
   let canConnectAfterSave = $derived(mode === "new" || mode === "duplicate");
@@ -89,6 +97,11 @@
       portInput.focus();
       return false;
     }
+    const validationError = revealInvalidConnectionField(form);
+    if (validationError !== null) {
+      error = validationError;
+      return false;
+    }
     return form.reportValidity();
   }
 
@@ -96,12 +109,19 @@
     const target = event.target;
     const enterTarget: FormEnterTarget =
       target instanceof HTMLInputElement
-        ? { kind: "input", type: target.type }
+        ? { kind: "input", type: target.type, hasDatalist: target.list !== null }
         : target instanceof HTMLTextAreaElement
           ? { kind: "textarea" }
           : target instanceof HTMLButtonElement
             ? { kind: "button" }
             : null;
+    if (event.key === "Enter" && enterTarget?.kind === "input" && enterTarget.hasDatalist) {
+      // Let the browser accept a folder suggestion. Cancel any implicit form
+      // submission from this key without cancelling the input's native action.
+      folderEnterPending = true;
+      setTimeout(() => { folderEnterPending = false; }, 0);
+      return;
+    }
     if (!shouldSaveOnEnter(event, enterTarget)) {
       return;
     }
@@ -111,7 +131,7 @@
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
-    if (submitting || !validate()) {
+    if (folderEnterPending || submitting || !validate()) {
       return;
     }
 
@@ -172,13 +192,16 @@
   }
 </script>
 
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
+
 <dialog
   bind:this={dialog}
+  style={`--connection-dialog-width: ${dialogBounds.width}px; --connection-dialog-height: ${dialogBounds.height}px; --connection-dialog-top: ${dialogBounds.top}px;`}
   onclose={onclose}
   oncancel={(event) => { if (submitting || choosingIdentity) event.preventDefault(); }}
   aria-labelledby="connection-heading"
 >
-  <form bind:this={form} onsubmit={submit}>
+  <form bind:this={form} onsubmit={submit} novalidate>
     <header>
       <h2 id="connection-heading">{heading}</h2>
       <button class="close" type="button" aria-label="Close" onclick={dismiss} disabled={submitting || choosingIdentity}><X size={16} /></button>
@@ -281,7 +304,7 @@
         <summary>
           <span>
             <strong>Agent and X11 forwarding</strong>
-            <small>Use your local SSH agent or X11 display remotely</small>
+            <small>{forwardingSummary(draft)}</small>
           </span>
           <ChevronDown class="chevron" size={14} />
         </summary>
@@ -298,7 +321,7 @@
         <summary>
           <span>
             <strong>Port forwarding</strong>
-            <small>Local, remote, and dynamic tunnels</small>
+            <small>{portForwardingSummary(localForwards, remoteForwards, dynamicForwards)}</small>
           </span>
           <ChevronDown class="chevron" size={14} />
         </summary>
@@ -338,10 +361,10 @@
 
 <style>
   dialog {
-    width: min(580px, calc(100vw - 32px));
+    width: min(580px, var(--connection-dialog-width));
     height: auto;
-    max-height: calc(100vh - 32px);
-    top: 16px;
+    max-height: var(--connection-dialog-height);
+    top: var(--connection-dialog-top);
     bottom: auto;
     margin: 0 auto;
     box-sizing: border-box;
@@ -354,13 +377,19 @@
     box-shadow: var(--shadow-panel);
     overflow: hidden;
   }
+  /* WebKit and Chromium treat viewport units inside CSS zoom differently.
+     Pixel bounds from the window keep the dialog and form in the same space. */
+  :global(html body) dialog[open] {
+    max-width: var(--connection-dialog-width);
+    max-height: var(--connection-dialog-height);
+  }
   dialog::backdrop {
     background: var(--overlay-backdrop);
   }
   form {
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 34px);
+    max-height: calc(var(--connection-dialog-height) - 2px);
     min-height: 0;
   }
   header {
@@ -585,6 +614,8 @@
   footer.actions {
     flex: none;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
