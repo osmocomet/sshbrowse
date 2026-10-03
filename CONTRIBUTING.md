@@ -16,7 +16,7 @@ Keep PRs focused, preserve unrelated work, and explain the problem, the change, 
 
 You retain ownership of your original contributions. By intentionally submitting a contribution to SSHBrowse, you confirm that you have the right to submit it and grant the SSHBrowse copyright holder a non-exclusive, perpetual, worldwide, irrevocable, royalty-free license to use, reproduce, modify, distribute, sublicense, and relicense it. This includes free versions for personal, non-commercial use and paid versions for professional, workplace, or commercial use.
 
-Submitting a contribution does not grant you independent redistribution rights over SSHBrowse; [NOTICE](NOTICE) governs use of the project. Disclose any third-party material and its applicable licenses, and preserve required attribution and notices.
+Submitting a contribution does not grant you independent redistribution rights over SSHBrowse; [LICENSE](LICENSE) governs use of the project. Disclose any third-party material and its applicable licenses, and preserve required attribution and notices.
 
 ## Set up
 
