@@ -10,6 +10,8 @@ export const preferenceKeys = {
   tilingMode: "sshbrowse.tiling.enabled",
   rightClickToPaste: "sshbrowse.terminal.rightClickToPaste",
   copyOnSelection: "sshbrowse.terminal.copyOnSelection",
+  checkUpdatesOnStartup: "sshbrowse.updates.checkOnStartup",
+  lastStartupUpdateCheck: "sshbrowse.updates.lastStartupCheck",
   collapsedFolders: "sshbrowse.sidebar.collapsed",
   terminalPasteWarningsDisabled: "sshbrowse.terminal.pasteWarningsDisabled",
   themeName: "sshbrowse.appearance.theme",
@@ -35,6 +37,7 @@ export interface Preferences {
   tilingMode: boolean;
   rightClickToPaste: boolean;
   copyOnSelection: boolean;
+  checkUpdatesOnStartup: boolean;
   collapsedFolders: Record<string, boolean>;
   terminalPasteWarningsDisabled: boolean;
   themeName: ThemeName;
@@ -127,6 +130,7 @@ export function loadPreferences(storage: PreferenceStorage): Preferences {
     tilingMode: readBoolean(storage, preferenceKeys.tilingMode, false),
     rightClickToPaste: readBoolean(storage, preferenceKeys.rightClickToPaste, false),
     copyOnSelection: readBoolean(storage, preferenceKeys.copyOnSelection, true),
+    checkUpdatesOnStartup: readBoolean(storage, preferenceKeys.checkUpdatesOnStartup, true),
     collapsedFolders: readCollapsedFolders(storage),
     terminalPasteWarningsDisabled: readBoolean(storage, preferenceKeys.terminalPasteWarningsDisabled, false),
     themeName: readThemeName(storage),

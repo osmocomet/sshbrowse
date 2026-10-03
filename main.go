@@ -99,12 +99,12 @@ func main() {
 	quitGuard = app.NewQuitGuard(wailsApp, sessions)
 	wailsApp.RegisterService(application.NewService(sessions))
 	wailsApp.RegisterService(application.NewService(app.NewConnections(store, wailsApp)))
-	updatesSupported, updateCoordinator, updateErr := app.ConfigureUpdater(wailsApp, executablePath, quitGuard)
+	_, updateCoordinator, updateErr := app.ConfigureUpdater(wailsApp, executablePath, quitGuard)
 	if updateErr != nil {
 		log.Printf("Configure updater: %v", updateErr)
 	}
 	app.RegisterUpdateInfo(wailsApp, executablePath, updateErr)
-	menu := app.BuildMenu(wailsApp, app.NewUpdateAction(wailsApp, updatesSupported && updateErr == nil, updateCoordinator))
+	menu := app.BuildMenu(wailsApp, app.RegisterUpdateChecks(wailsApp, executablePath, updateErr, updateCoordinator))
 	if menu != nil {
 		wailsApp.Menu.SetApplicationMenu(menu)
 	}

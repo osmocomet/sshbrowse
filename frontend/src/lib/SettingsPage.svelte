@@ -6,6 +6,7 @@
   import type { TerminalColors, TerminalFontName, ThemeName } from "./appearance";
   import type { UpdateInfo } from "./menuEvents";
   import type { UiSize } from "./storage";
+  import { canCheckForUpdates } from "./updates";
 
   let {
     themeName,
@@ -23,6 +24,10 @@
     updateBusy,
     updateAvailable,
     updateReady,
+    checkUpdatesOnStartup,
+    updateReleaseURL,
+    onstartupupdatechange,
+    onreleasenotes,
     oncheckforupdates,
     ondownloadupdate,
     onrestartupdate,
@@ -51,6 +56,10 @@
     updateBusy: boolean;
     updateAvailable: boolean;
     updateReady: boolean;
+    checkUpdatesOnStartup: boolean;
+    updateReleaseURL: string;
+    onstartupupdatechange: (enabled: boolean) => void;
+    onreleasenotes: () => void;
     oncheckforupdates: () => void;
     ondownloadupdate: () => void;
     onrestartupdate: () => void;
@@ -134,21 +143,34 @@
               <div class="setting-group">
                 <div class="setting-row">
                   <div><strong>Current version</strong><span>{updateInfo?.version ?? "Loading…"}</span></div>
-                  {#if updateInfo?.availability === "supported"}
+                  {#if canCheckForUpdates(updateInfo?.availability)}
                     {#if updateReady}
                       <button class="update-button" type="button" disabled={updateBusy} onclick={onrestartupdate}>Restart to update</button>
                     {:else if updateAvailable}
-                      <button class="update-button" type="button" disabled={updateBusy} onclick={ondownloadupdate}>Download update</button>
+                      {#if updateInfo?.availability === "supported"}
+                        <button class="update-button" type="button" disabled={updateBusy} onclick={ondownloadupdate}>Download update</button>
+                      {:else}
+                        <button class="update-button" type="button" onclick={onreleasenotes}>View release</button>
+                      {/if}
                     {:else}
                       <button class="update-button" type="button" disabled={updateBusy} onclick={oncheckforupdates}>Check for updates</button>
                     {/if}
                   {/if}
                 </div>
+                {#if canCheckForUpdates(updateInfo?.availability)}
+                  <div class="setting-row">
+                    <div><strong>Check for updates on startup</strong><span>Check GitHub Releases at most once a day; downloads require your approval</span></div>
+                    <button class="switch" type="button" role="switch" aria-label="Check for updates on startup" aria-checked={checkUpdatesOnStartup} onclick={() => onstartupupdatechange(!checkUpdatesOnStartup)}><span></span></button>
+                  </div>
+                {/if}
                 {#if updateInfo}
                   <p class="update-guidance">{updateInfo.message}</p>
                 {/if}
                 {#if updateStatus}
                   <p class="update-status" class:error={updateError} role={updateError ? "alert" : "status"}>{updateStatus}</p>
+                {/if}
+                {#if updateReleaseURL}
+                  <p class="update-guidance"><button class="update-button" type="button" onclick={onreleasenotes}>Release notes ↗</button></p>
                 {/if}
               </div>
             </section>

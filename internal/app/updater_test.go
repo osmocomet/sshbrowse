@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/updater"
@@ -173,7 +174,7 @@ func TestWindowlessCheckEmitsNoUpdateInline(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
-	runUpdateCheck(&application.App{Updater: wailsUpdater}, &updateCoordinator{})
+	checkUpdateRelease(wailsUpdater, &updateCoordinator{}, wailsUpdater.Check, 10*time.Minute)
 	if host.openCalls != 0 || !host.hasEvent(updater.EventNoUpdate) {
 		t.Fatalf("open window calls = %d, events = %v; want no window and inline no-update event", host.openCalls, host.events)
 	}
@@ -207,7 +208,7 @@ func TestWindowlessCheckWaitsForExplicitDownload(t *testing.T) {
 	}
 	wailsApp := &application.App{Updater: wailsUpdater}
 	coordinator := &updateCoordinator{}
-	runUpdateCheck(wailsApp, coordinator)
+	checkUpdateRelease(wailsUpdater, coordinator, wailsUpdater.Check, 10*time.Minute)
 	if checks != 1 || downloads != 0 || wailsUpdater.State() != updater.StateAvailable || !host.hasEvent(updater.EventUpdateAvailable) {
 		t.Fatalf("check state = %s, checks = %d, downloads = %d, events = %v; want available without download", wailsUpdater.State(), checks, downloads, host.events)
 	}
@@ -228,8 +229,11 @@ func TestWindowlessCheckWaitsForExplicitDownload(t *testing.T) {
 	if host.openCalls != 0 || !host.hasEvent(updater.EventUpdateAvailable) || !host.hasEvent(updater.EventUpdateReady) {
 		t.Fatalf("open window calls = %d, events = %v; want inline available and ready events", host.openCalls, host.events)
 	}
-	runUpdateCheck(wailsApp, coordinator)
+	checkUpdateRelease(wailsUpdater, coordinator, wailsUpdater.Check, 10*time.Minute)
 	runUpdateDownload(wailsApp, coordinator)
+	if release, checked, err := checkUpdateRelease(wailsUpdater, coordinator, wailsUpdater.Check, startupUpdateTimeout); release != nil || checked || err != nil {
+		t.Fatalf("startup check after ready = (%v, %v, %v), want no check", release, checked, err)
+	}
 	if checks != 1 || downloads != 1 || wailsUpdater.DownloadedPath() != staged {
 		t.Fatalf("repeat check after ready changed staging: checks = %d, downloads = %d, path = %q", checks, downloads, wailsUpdater.DownloadedPath())
 	}
@@ -251,7 +255,7 @@ func TestFailedCheckCanRetryWithoutDownloading(t *testing.T) {
 	}
 	wailsApp := &application.App{Updater: wailsUpdater}
 	coordinator := &updateCoordinator{}
-	runUpdateCheck(wailsApp, coordinator)
+	checkUpdateRelease(wailsUpdater, coordinator, wailsUpdater.Check, 10*time.Minute)
 	if checks != 1 || downloads != 0 || !host.hasEvent(updater.EventError) {
 		t.Fatalf("failed check: checks = %d, downloads = %d, events = %v", checks, downloads, host.events)
 	}
@@ -260,7 +264,7 @@ func TestFailedCheckCanRetryWithoutDownloading(t *testing.T) {
 		t.Fatal("failed check allowed a download")
 	}
 	checkError = nil
-	runUpdateCheck(wailsApp, coordinator)
+	checkUpdateRelease(wailsUpdater, coordinator, wailsUpdater.Check, 10*time.Minute)
 	if checks != 2 || downloads != 0 || wailsUpdater.State() != updater.StateAvailable {
 		t.Fatalf("retry: state = %s, checks = %d, downloads = %d; want available without download", wailsUpdater.State(), checks, downloads)
 	}
