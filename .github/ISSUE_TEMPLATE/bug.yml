@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible SSHBrowse problem
+title: "Bug: "
+body:
+  - type: markdown
+    attributes:
+      value: "For a security vulnerability, follow [SECURITY.md](https://github.com/osmocomet/sshbrowse/blob/main/SECURITY.md) instead of opening a public issue. Before attaching logs or screenshots, remove passwords, private keys, passphrases, tokens, and other credentials."
+  - type: input
+    id: version
+    attributes:
+      label: SSHBrowse version
+      description: Found in About; include the source revision for a development build.
+      placeholder: "0.1.0 or development revision"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, version, architecture, and install method
+      placeholder: "Fedora 44 x86-64, RPM"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - SSH session
+        - Local terminal or SFTP
+        - Broadcast or tiling
+        - Interface or rendering
+        - SSH config import
+        - Installer or updater
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest sequence that shows the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior
+      description: Describe what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Relevant details, logs, or screenshots
+      description: "Optional. Redact credentials and private hostnames, IP addresses, usernames, or paths before posting. Never attach your entire .ssh directory."
+    validations:
+      required: false

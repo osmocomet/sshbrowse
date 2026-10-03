@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an improvement to SSHBrowse
+title: "Feature: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and where does the current workflow fall short?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Helpful behavior
+      description: What would help you accomplish the task?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: Optional. Include platform relevance if it matters.
+    validations:
+      required: false

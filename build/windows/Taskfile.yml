@@ -1,0 +1,129 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application natively on Windows
+    platforms: [windows]
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          OBFUSCATED:
+            ref: .OBFUSCATED
+          DEV:
+            ref: .DEV
+      - task: generate:syso
+    cmds:
+      - powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '{{.BIN_DIR}}' | Out-Null"
+      - go build {{.BUILD_FLAGS}} -o "{{.OUTPUT}}"
+      - powershell -NoProfile -Command "Remove-Item -Force '{{.SYSo}}' -ErrorAction SilentlyContinue"
+    vars:
+      BUILD_FLAGS: '{{if eq .DEV "true"}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui{{if eq .RELEASE "true"}} -X sshbrowse/internal/buildinfo.Version={{.VERSION}} -X sshbrowse/internal/buildinfo.Commit={{.BUILD_COMMIT}}{{end}}"{{end}}'
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}.exe'
+      OUTPUT: '{{.OUTPUT | default .DEFAULT_OUTPUT}}'
+      SYSo: 'wails_windows_{{.ARCH | default ARCH}}.syso'
+    env:
+      GOOS: windows
+      CGO_ENABLED: 0
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  check:
+    summary: Runs Go and frontend checks natively on Windows
+    platforms: [windows]
+    deps:
+      - task: common:build:frontend
+    cmds:
+      - go test ./...
+      - npm --prefix frontend run check
+      - npm --prefix frontend test
+
+  package:
+    summary: Creates the Wails NSIS installer
+    platforms: [windows]
+    cmds:
+      - task: common:prepare:release-assets
+        vars:
+          VERSION: '{{.VERSION}}'
+      - task: create:nsis:installer
+        vars:
+          INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+
+  release:
+    summary: Creates the per-user NSIS installer and updater archive
+    platforms: [windows]
+    deps:
+      - task: package
+        vars:
+          INSTALL_SCOPE: user
+          RELEASE: "true"
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/windows/verify-version.ps1" -Path "{{.BIN_DIR}}/{{.APP_NAME}}.exe" -ExpectedVersion "{{.VERSION}}"
+      - powershell -NoProfile -Command "Move-Item -Force 'bin/{{.APP_NAME}}-amd64-installer.exe' 'bin/SSHBrowse-Windows-x64-Setup.exe'"
+      - task: create:update:zip
+
+  create:nsis:installer:
+    summary: Runs Wails' built-in NSIS packaging
+    platforms: [windows]
+    dir: build/windows/nsis
+    deps:
+      - task: build
+        vars:
+          RELEASE: '{{.RELEASE | default "false"}}'
+          VERSION: '{{.VERSION}}'
+    preconditions:
+      - sh: '[ "{{.INSTALL_SCOPE}}" = "user" ] || [ "{{.INSTALL_SCOPE}}" = "machine" ]'
+        msg: "INSTALL_SCOPE must be user or machine"
+      - sh: '[ "$(makensis -VERSION)" = "v3.11" ]'
+        msg: "NSIS 3.11 is required to match the installer components in THIRD_PARTY_NOTICES.txt"
+    cmds:
+      - >-
+        makensis
+        {{if eq .INSTALL_SCOPE "user"}}-DWAILS_INSTALL_SCOPE=user -DREQUEST_EXECUTION_LEVEL=user{{end}}
+        -DARG_WAILS_{{.ARG_FLAG}}_BINARY="..\..\..\{{.BIN_DIR}}\{{.APP_NAME}}.exe"
+        project.nsi
+    vars:
+      ARG_FLAG: '{{if eq (.ARCH | default ARCH) "amd64"}}AMD64{{else}}ARM64{{end}}'
+      INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
+
+  create:update:zip:
+    summary: Creates the Windows executable archive consumed by the Wails updater
+    platforms: [windows]
+    cmds:
+      - powershell -NoProfile -Command "if (Test-Path -LiteralPath 'bin/SSHBrowse-Windows-x64-update.zip') { Remove-Item -Force 'bin/SSHBrowse-Windows-x64-update.zip' }"
+      - tar.exe -a -c -f "bin/SSHBrowse-Windows-x64-update.zip" -C "bin" "{{.APP_NAME}}.exe"
+
+  run:
+    summary: Runs the embedded native Windows application
+    platforms: [windows]
+    preconditions:
+      - sh: 'powershell -NoProfile -NonInteractive -Command "if (Test-Path -LiteralPath ''{{.BIN_DIR}}\\{{.APP_NAME}}.exe'') { exit 0 } else { exit 1 }"'
+        msg: "build bin/sshbrowse.exe first with `wails3 task build`"
+    cmds:
+      - powershell -NoProfile -Command "Start-Process -FilePath '{{.BIN_DIR}}\\{{.APP_NAME}}.exe' -Wait"
+
+  generate:icon:
+    summary: Generates the Windows icon from the shared application artwork
+    dir: build
+    sources:
+      - appicon.png
+    generates:
+      - windows/icon.ico
+    cmds:
+      - wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename ""
+
+  generate:syso:
+    summary: Generates the Windows icon, manifest and version resource
+    deps:
+      - task: generate:icon
+    dir: build
+    cmds:
+      - wails3 generate syso -arch {{.ARCH | default ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../{{.SYSo}}
+    vars:
+      SYSo: 'wails_windows_{{.ARCH | default ARCH}}.syso'

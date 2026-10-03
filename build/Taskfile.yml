@@ -1,0 +1,97 @@
+version: '3'
+
+tasks:
+  go:mod:tidy:
+    summary: Runs `go mod tidy`
+    internal: true
+    # Universal builds invoke this concurrently from parallel dependencies.
+    run: once
+    cmds:
+      - go mod tidy
+
+  install:frontend:deps:
+    summary: Installs frontend dependencies
+    run: once
+    dir: frontend
+    sources:
+      - package.json
+      - package-lock.json
+    generates:
+      - node_modules/.package-lock.json
+    preconditions:
+      - sh: npm version
+        msg: "npm is required"
+    cmds:
+      - npm ci
+
+  build:frontend:
+    label: build:frontend (DEV={{.DEV}})
+    summary: Builds the frontend
+    # Universal builds share generated bindings and frontend output.
+    run: once
+    dir: frontend
+    sources:
+      - "**/*"
+      - exclude: node_modules/**/*
+    generates:
+      - dist/**/*
+    deps:
+      - task: install:frontend:deps
+      - task: generate:bindings
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          OBFUSCATED:
+            ref: .OBFUSCATED
+    cmds:
+      - npm run {{if eq .DEV "true"}}build:dev{{else}}build{{end}} -q
+    env:
+      PRODUCTION: '{{if eq .DEV "true"}}false{{else}}true{{end}}'
+
+  generate:bindings:
+    summary: Generates frontend bindings
+    run: once
+    deps:
+      - task: go:mod:tidy
+    sources:
+      - "**/*.[jt]s"
+      - exclude: frontend/**/*
+      - frontend/bindings/**/*
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - frontend/bindings/**/*
+    cmds:
+      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -i
+
+  generate:icons:
+    summary: Generates application icons
+    run: once
+    dir: build
+    sources:
+      - appicon.png
+    generates:
+      - darwin/icons.icns
+    cmds:
+      - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename ""
+
+  dev:frontend:
+    summary: Runs the frontend development server
+    dir: frontend
+    deps:
+      - task: install:frontend:deps
+    cmds:
+      - npm run dev -- --port {{.VITE_PORT}} --strictPort
+
+  update:build-assets:
+    summary: Updates Wails-generated build metadata
+    cmds:
+      - VERSION="{{.VERSION}}" bash build/prepare-release-assets.sh
+
+  prepare:release-assets:
+    summary: Generates versioned Wails metadata for a release build
+    internal: true
+    run: once
+    cmds:
+      - VERSION="{{.VERSION}}" bash build/prepare-release-assets.sh

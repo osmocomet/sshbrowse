@@ -1,0 +1,350 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to embed in candidate artifacts (for example, v0.0.1)
+        required: true
+        default: v0.0.1
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release versions must match vMAJOR.MINOR.PATCH (got $VERSION)" >&2
+            exit 1
+          fi
+
+  macos:
+    name: macOS universal release
+    runs-on: macos-26
+    timeout-minutes: 35
+    needs: validate
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.21.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails v3
+        run: |
+          wails_version=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@$wails_version"
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Verify the tagged source
+        run: |
+          set -euo pipefail
+          wails3 task check
+          go vet ./...
+          git diff --exit-code
+
+      - name: Build release artifacts
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          wails3 task darwin:release VERSION="$VERSION"
+          test -f bin/SSHBrowse-macOS-universal.dmg
+          test -f bin/SSHBrowse-macOS-universal.zip
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-macos
+          path: |
+            bin/SSHBrowse-macOS-universal.dmg
+            bin/SSHBrowse-macOS-universal.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows x64 release
+    runs-on: windows-latest
+    timeout-minutes: 35
+    needs: validate
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.21.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install NSIS 3.11
+        shell: pwsh
+        run: |
+          choco upgrade nsis --version=3.11.0 --allow-downgrade --force --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'NSIS 3.11 installation failed' }
+          $nsisDir = Join-Path ${env:ProgramFiles(x86)} 'NSIS'
+          $compiler = Join-Path $nsisDir 'makensis.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) { throw 'NSIS installation did not provide makensis.exe' }
+          $nsisVersion = & $compiler -VERSION
+          if ($LASTEXITCODE -ne 0 -or "$nsisVersion".Trim() -ne 'v3.11') { throw 'NSIS 3.11 is required for the audited installer components' }
+          $nsisDir >> $env:GITHUB_PATH
+
+      - name: Install Wails v3
+        shell: pwsh
+        run: |
+          $wailsVersion = go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@$wailsVersion"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Run Wails checks
+        run: wails3 task check
+
+      - name: Run Go vet
+        run: go vet ./...
+
+      - name: Check for generated changes
+        run: git diff --exit-code
+
+      - name: Build release artifacts
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.version || github.ref_name }}
+        run: |
+          $version = $env:TAG.Substring(1)
+          wails3 task windows:release ARCH=amd64 VERSION=$version
+          if (-not (Test-Path -LiteralPath "bin\SSHBrowse-Windows-x64-Setup.exe")) { throw "NSIS installer was not created" }
+          if (-not (Test-Path -LiteralPath "bin\SSHBrowse-Windows-x64-update.zip")) { throw "Updater archive was not created" }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: |
+            bin/SSHBrowse-Windows-x64-Setup.exe
+            bin/SSHBrowse-Windows-x64-update.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  linux:
+    name: Linux x86_64 release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    needs: validate
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Install Linux build and runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes gcc pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.21.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails v3
+        run: |
+          wails_version=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@$wails_version"
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Verify the tagged source
+        run: |
+          set -euo pipefail
+          wails3 task check ARCH=amd64
+          go vet ./...
+          git diff --exit-code
+
+      - name: Build release artifacts
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          wails3 task linux:release ARCH=amd64 VERSION="$VERSION"
+          test -f "bin/sshbrowse_${VERSION}_amd64.deb"
+          test -f "bin/sshbrowse-${VERSION}.x86_64.rpm"
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-linux
+          path: |
+            bin/sshbrowse_*_amd64.deb
+            bin/sshbrowse-*.x86_64.rpm
+          if-no-files-found: error
+          retention-days: 14
+
+  candidate:
+    name: Assemble candidate artifacts
+    needs: [macos, windows, linux]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t artifacts < <(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          if (( ${#artifacts[@]} != 6 )); then
+            printf 'Expected 6 release artifacts, found %d:\n' "${#artifacts[@]}" >&2
+            printf '%s\n' "${artifacts[@]}" >&2
+            exit 1
+          fi
+          (cd dist && sha256sum -- "${artifacts[@]}") > dist/SHA256SUMS
+
+      - name: Upload complete candidate artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: candidate-bundle
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: [macos, windows, linux]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must match vMAJOR.MINOR.PATCH (got $tag)" >&2
+            exit 1
+          fi
+          mapfile -t artifacts < <(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          if (( ${#artifacts[@]} != 6 )); then
+            printf 'Expected 6 release artifacts, found %d:\n' "${#artifacts[@]}" >&2
+            printf '%s\n' "${artifacts[@]}" >&2
+            exit 1
+          fi
+          (cd dist && sha256sum -- "${artifacts[@]}") > dist/SHA256SUMS
+
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          cat > release-notes.md <<'EOF'
+          ## Installation
+
+          - macOS: open `SSHBrowse-macOS-universal.dmg`, then drag **SSHBrowse** (`sshbrowse.app`) to **Applications**.
+          - Windows: run `SSHBrowse-Windows-x64-Setup.exe`.
+          - Linux: install the DEB/RPM package for your distribution; updates are handled through the package manager.
+
+          The macOS app is ad-hoc signed only; it has no Developer ID signature and is not notarized. Windows artifacts remain unsigned. macOS Gatekeeper may still require **Open** in the security prompt or Privacy & Security settings, and Windows SmartScreen may identify the publisher as unknown. No signing or notarization credentials are used by this release.
+          EOF
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --verify-tag --title "SSHBrowse $tag" --notes-file release-notes.md
+          fi

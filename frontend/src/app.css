@@ -1,0 +1,415 @@
+:root {
+  --radius-panel: 10px;
+  --radius-dialog: 12px;
+  --radius-control: 6px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --ui-font-body: 14px;
+  --ui-font-small: 12px;
+  --ui-font-tiny: 11px;
+  --ui-font-micro: 10px;
+  --ui-font-title: 24px;
+  --ui-font-heading: 16px;
+  --shadow-panel: 0 12px 32px rgb(0 0 0 / 28%);
+}
+
+.preview[data-theme="warm"],
+:root[data-theme="warm"] {
+  color-scheme: dark;
+
+  /* Shared semantic roles. Components use these roles; each theme supplies a palette. */
+  --canvas: #201f1c;
+  --chrome: #24231f;
+  --chrome-foreground: #ded9cf;
+  --chrome-border: #34332e;
+  --toolbar: #25241f;
+  --toolbar-foreground: #cbc6bb;
+  --toolbar-border: #34332e;
+  --toolbar-control: #2a2924;
+  --toolbar-control-foreground: #c8c2b6;
+  --toolbar-control-hover: #37352e;
+  --surface: #252520;
+  --surface-raised: #2d2c27;
+  --surface-overlay: #302e29;
+  --overlay-backdrop: rgb(0 0 0 / 66%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 48%);
+  --input-surface: #1a1916;
+  --text-primary: #e9e4d9;
+  --text-secondary: #c2bbad;
+  --text-muted: #9e978a;
+  --text-disabled: #807a70;
+  --text-placeholder: #938c7f;
+  --icon-muted: #aaa394;
+  --control-hover: #35332d;
+  --selection: #403b2f;
+  --selection-inactive: #343229;
+  --border: #48463d;
+  --border-subtle: #34332d;
+  --separator: #403e35;
+  --focus-ring: #f0d18a;
+  --accent: #d8b76e;
+  --accent-foreground: #262218;
+  --accent-subtle: rgb(216 183 110 / 18%);
+  --accent-hover: #e3c47f;
+  --sidebar: #24231f;
+  --sidebar-foreground: #ded9cf;
+  --sidebar-muted-foreground: #9e978a;
+  --sidebar-control-surface: #2e2c26;
+  --sidebar-row-hover: #302f29;
+  --sidebar-row-active: #403b2f;
+  --sidebar-row-selected: #343229;
+  --sidebar-border: #34332d;
+  /* Keep terminal background and foreground aligned with terminalThemes in appearance.ts. */
+  --terminal-background: #171614;
+  --terminal-foreground: #e9e4d9;
+  --status-warning: #e4c17a;
+  --status-warning-surface: #332d20;
+  --status-error: #e4a39b;
+  --status-error-foreground: #26201d;
+  --status-error-hover: #edb2aa;
+  --status-error-surface: #382729;
+
+}
+
+:root,
+:root[data-theme="classic"],
+.preview[data-theme="classic"] {
+  color-scheme: dark;
+  --canvas: #1b1d20;
+  --chrome: #202226;
+  --chrome-foreground: #d9dee1;
+  --chrome-border: #35393e;
+  --toolbar: #202226;
+  --toolbar-foreground: #c6cdd1;
+  --toolbar-border: #35393e;
+  --toolbar-control: #292c30;
+  --toolbar-control-foreground: #c6cdd1;
+  --toolbar-control-hover: #35393e;
+  --surface: #24272b;
+  --surface-raised: #2d3136;
+  --surface-overlay: #30353a;
+  --overlay-backdrop: rgb(0 0 0 / 66%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 48%);
+  --input-surface: #17191c;
+  --text-primary: #e4e6e8;
+  --text-secondary: #bdc2c7;
+  --text-muted: #9299a0;
+  --text-disabled: #747c83;
+  --text-placeholder: #8a9299;
+  --icon-muted: #a3aab0;
+  --control-hover: #343a40;
+  --selection: #333a42;
+  --selection-inactive: #2b3036;
+  --border: #454b52;
+  --border-subtle: #353a40;
+  --separator: #3b4147;
+  --focus-ring: #d0dce5;
+  --accent: #aab9c7;
+  --accent-foreground: #15191d;
+  --accent-subtle: rgb(170 185 199 / 19%);
+  --accent-hover: #c0ced9;
+  --sidebar: #1d2024;
+  --sidebar-foreground: #e0e3e6;
+  --sidebar-muted-foreground: #9299a0;
+  --sidebar-control-surface: #2a2e33;
+  --sidebar-row-hover: #2a3036;
+  --sidebar-row-active: #333a42;
+  --sidebar-row-selected: #2b3036;
+  --sidebar-border: #353a40;
+  --terminal-background: #191e21;
+  --terminal-foreground: #e2e7e9;
+  --status-warning: #dfb871;
+  --status-warning-surface: #30291f;
+  --status-error: #e3908d;
+  --status-error-foreground: #21191a;
+  --status-error-hover: #ed9f9b;
+  --status-error-surface: #302224;
+}
+
+:root[data-theme="moss"],
+.preview[data-theme="moss"] {
+  color-scheme: dark;
+  --canvas: #1e2120;
+  --chrome: #222523;
+  --chrome-foreground: #e3e6df;
+  --chrome-border: #303a34;
+  --toolbar: #242725;
+  --toolbar-foreground: #cbd3c7;
+  --toolbar-border: #303a34;
+  --toolbar-control: #2d332f;
+  --toolbar-control-foreground: #cbd3c7;
+  --toolbar-control-hover: #373f39;
+  --surface: #282d29;
+  --surface-raised: #303731;
+  --surface-overlay: #353d36;
+  --overlay-backdrop: rgb(0 0 0 / 66%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 48%);
+  --input-surface: #171d19;
+  --text-primary: #e8e9df;
+  --text-secondary: #c2c9bd;
+  --text-muted: #99a79a;
+  --text-disabled: #7d8b7f;
+  --text-placeholder: #8d9c8f;
+  --icon-muted: #aab7a8;
+  --control-hover: #363d37;
+  --selection: #334137;
+  --selection-inactive: #2b362e;
+  --border: #455047;
+  --border-subtle: #303a34;
+  --separator: #3a453c;
+  --focus-ring: #c3d4bc;
+  --accent: #a7bca2;
+  --accent-foreground: #1a241c;
+  --accent-subtle: rgb(167 188 162 / 19%);
+  --accent-hover: #bacdb4;
+  --sidebar: #222623;
+  --sidebar-foreground: #e2e7dc;
+  --sidebar-muted-foreground: #99a79a;
+  --sidebar-control-surface: #2e3430;
+  --sidebar-row-hover: #2e3630;
+  --sidebar-row-active: #334137;
+  --sidebar-row-selected: #2b362e;
+  --sidebar-border: #303a34;
+  --terminal-background: #171d19;
+  --terminal-foreground: #e6eadf;
+  --status-warning: #dec58b;
+  --status-warning-surface: #302c21;
+  --status-error: #dfa19b;
+  --status-error-foreground: #241d1b;
+  --status-error-hover: #eab2ab;
+  --status-error-surface: #342627;
+}
+
+:root[data-theme="fjord"],
+.preview[data-theme="fjord"] {
+  color-scheme: dark;
+  --canvas: #132025;
+  --chrome: #16262c;
+  --chrome-foreground: #dcebe9;
+  --chrome-border: #294047;
+  --toolbar: #17272d;
+  --toolbar-foreground: #bfd5d1;
+  --toolbar-border: #294047;
+  --toolbar-control: #203238;
+  --toolbar-control-foreground: #c9dedb;
+  --toolbar-control-hover: #2b4348;
+  --surface: #192a30;
+  --surface-raised: #22363c;
+  --surface-overlay: #284047;
+  --overlay-backdrop: rgb(0 0 0 / 66%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 48%);
+  --input-surface: #0d191d;
+  --text-primary: #e1efed;
+  --text-secondary: #b5cbc8;
+  --text-muted: #88a5a1;
+  --text-disabled: #6e8a87;
+  --text-placeholder: #809b98;
+  --icon-muted: #9cb8b4;
+  --control-hover: #2a4146;
+  --selection: #285053;
+  --selection-inactive: #213a3e;
+  --border: #3a5053;
+  --border-subtle: #294047;
+  --separator: #324a4f;
+  --focus-ring: #a1e7d6;
+  --accent: #65c7ba;
+  --accent-foreground: #10211f;
+  --accent-subtle: rgb(101 199 186 / 19%);
+  --accent-hover: #80d8ca;
+  --sidebar: #15252a;
+  --sidebar-foreground: #dcebe9;
+  --sidebar-muted-foreground: #88a5a1;
+  --sidebar-control-surface: #22353b;
+  --sidebar-row-hover: #20383e;
+  --sidebar-row-active: #285053;
+  --sidebar-row-selected: #213a3e;
+  --sidebar-border: #294047;
+  --terminal-background: #0d191d;
+  --terminal-foreground: #e1efed;
+  --status-warning: #e5c884;
+  --status-warning-surface: #342d22;
+  --status-error: #e9a49e;
+  --status-error-foreground: #261c1c;
+  --status-error-hover: #f1b5ae;
+  --status-error-surface: #3a292a;
+}
+
+:root[data-theme="oled"],
+.preview[data-theme="oled"] {
+  color-scheme: dark;
+  --canvas: #000000;
+  --chrome: #000000;
+  --chrome-foreground: #e4e5df;
+  --chrome-border: #171918;
+  --toolbar: #050505;
+  --toolbar-foreground: #d5d7d1;
+  --toolbar-border: #1b1b1b;
+  --toolbar-control: #101010;
+  --toolbar-control-foreground: #d5d7d1;
+  --toolbar-control-hover: #202020;
+  --surface: #090909;
+  --surface-raised: #151515;
+  --surface-overlay: #1b1b1b;
+  --overlay-backdrop: rgb(0 0 0 / 72%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 52%);
+  --input-surface: #050505;
+  --text-primary: #f0f0eb;
+  --text-secondary: #c0c2bb;
+  --text-muted: #989b93;
+  --text-disabled: #777b74;
+  --text-placeholder: #8e918a;
+  --icon-muted: #a4a69f;
+  --control-hover: #1e1e1e;
+  --selection: #343434;
+  --selection-inactive: #242424;
+  --border: #3b3b3b;
+  --border-subtle: #202020;
+  --separator: #2e2e2e;
+  --focus-ring: #f0ce79;
+  --accent: #e0bd6e;
+  --accent-foreground: #211e16;
+  --accent-subtle: rgb(224 189 110 / 19%);
+  --accent-hover: #eccd84;
+  --sidebar: #000000;
+  --sidebar-foreground: #e4e5df;
+  --sidebar-muted-foreground: #989b93;
+  --sidebar-control-surface: #111111;
+  --sidebar-row-hover: #171717;
+  --sidebar-row-active: #343434;
+  --sidebar-row-selected: #242424;
+  --sidebar-border: #202020;
+  --terminal-background: #000000;
+  --terminal-foreground: #ebece6;
+  --status-warning: #edc776;
+  --status-warning-surface: #211b10;
+  --status-error: #f09a96;
+  --status-error-foreground: #211515;
+  --status-error-hover: #ffa9a5;
+  --status-error-surface: #251315;
+}
+
+:root[data-theme="contrast"],
+.preview[data-theme="contrast"] {
+  color-scheme: dark;
+  --canvas: #080808;
+  --chrome: #090909;
+  --chrome-foreground: #ffffff;
+  --chrome-border: #707070;
+  --toolbar: #101010;
+  --toolbar-foreground: #ffffff;
+  --toolbar-border: #707070;
+  --toolbar-control: #1a1a1a;
+  --toolbar-control-foreground: #ffffff;
+  --toolbar-control-hover: #303030;
+  --surface: #111111;
+  --surface-raised: #202020;
+  --surface-overlay: #242424;
+  --overlay-backdrop: rgb(0 0 0 / 78%);
+  --overlay-backdrop-soft: rgb(0 0 0 / 60%);
+  --input-surface: #050505;
+  --text-primary: #ffffff;
+  --text-secondary: #ededed;
+  --text-muted: #d0d0d0;
+  --text-disabled: #b4b4b4;
+  --text-placeholder: #c9c9c9;
+  --icon-muted: #dddddd;
+  --control-hover: #303030;
+  --selection: #25435a;
+  --selection-inactive: #303030;
+  --border: #8a8a8a;
+  --border-subtle: #666666;
+  --separator: #a0a0a0;
+  --focus-ring: #ffe083;
+  --accent: #99d7ff;
+  --accent-foreground: #000000;
+  --accent-subtle: rgb(153 215 255 / 30%);
+  --accent-hover: #b7e4ff;
+  --sidebar: #111111;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted-foreground: #d0d0d0;
+  --sidebar-control-surface: #202020;
+  --sidebar-row-hover: #292929;
+  --sidebar-row-active: #25435a;
+  --sidebar-row-selected: #303030;
+  --sidebar-border: #707070;
+  --terminal-background: #000000;
+  --terminal-foreground: #ffffff;
+  --status-warning: #ffdb8a;
+  --status-warning-surface: #30250e;
+  --status-error: #ffaaa7;
+  --status-error-foreground: #000000;
+  --status-error-hover: #ffc2bf;
+  --status-error-surface: #35191a;
+  --shadow-panel: 0 0 0 1px #808080, 0 16px 42px rgb(0 0 0 / 70%);
+}
+
+:root[data-terminal-colors="neutral"],
+.preview[data-terminal-colors="neutral"] {
+  --terminal-background: #000000;
+  --terminal-foreground: #e5e7e9;
+}
+
+:root[data-ui-size="large"] {
+  --ui-font-body: 15px;
+  --ui-font-small: 13px;
+  --ui-font-tiny: 12px;
+  --ui-font-micro: 11px;
+  --ui-font-title: 26px;
+  --ui-font-heading: 17px;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+dialog {
+  zoom: var(--interface-scale, 1);
+}
+
+/* Dialogs size themselves before zoom; their visual box needs room inside the viewport. */
+html body dialog[open] {
+  max-width: calc((100vw - 32px) / var(--interface-scale, 1));
+  max-height: calc((100vh - 32px) / var(--interface-scale, 1));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.lucide-icon {
+  flex-shrink: 0;
+  stroke-width: 1.75;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="option"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="treeitem"]:focus-visible,
+[role="separator"]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
