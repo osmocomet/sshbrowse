@@ -12,7 +12,7 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
-    "@lucide/svelte": "1.62.0",
+    "@lucide/svelte": "1.64.0",
     "@wailsio/runtime": "3.0.0",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/addon-search": "0.16.0",
