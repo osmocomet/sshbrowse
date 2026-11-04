@@ -20,12 +20,12 @@ Submitting a contribution does not grant you independent redistribution rights o
 
 ## Set up
 
-Install Git, the Go version in `go.mod`, Node.js 24 with npm, and the Wails CLI version matching `go.mod`. Native builds need Xcode Command Line Tools on macOS; GCC, `pkg-config`, and GTK4/WebKitGTK 6.0 development packages on Linux; or WebView2 Runtime and Windows OpenSSH Client on Windows. Windows release builds also need Git Bash on `PATH` and NSIS 3.11 (`makensis`). Run `wails3 doctor` to check the toolchain.
+Install Git, the Go version in `go.mod`, Node.js 26 with npm, and the Wails CLI version matching `go.mod`. Native builds need Xcode Command Line Tools on macOS; GCC, `pkg-config`, and GTK4/WebKitGTK 6.0 development packages on Linux; or WebView2 Runtime and Windows OpenSSH Client on Windows. Windows release builds also need Git Bash on `PATH` and NSIS 3.13 (`makensis`). Run `wails3 doctor` to check the toolchain.
 
 ```sh
 git clone https://github.com/sshbrowse/sshbrowse.git
 cd sshbrowse
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
 wails3 task dev
 ```
 
@@ -42,7 +42,7 @@ Put `$(go env GOPATH)/bin` on `PATH`. The first build installs frontend dependen
 
 On Windows x64, run `wails3 task windows:release ARCH=amd64 VERSION=x.y.z` to create the installer and updater ZIP locally. This does not publish a release.
 
-SSHBrowse supports Windows 11 x64 only. Setup checks for Microsoft Edge WebView2 Runtime, which is [normally included with Windows 11](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution). If it is missing, Setup asks the user to install or repair it and stops before installing SSHBrowse. SSHBrowse does not download, bundle, or install the runtime. NSIS 3.11 remains pinned for reproducible packaging and to match the audited installer notices.
+SSHBrowse supports Windows 11 x64 only. Setup checks for Microsoft Edge WebView2 Runtime, which is [normally included with Windows 11](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution). If it is missing, Setup asks the user to install or repair it and stops before installing SSHBrowse. SSHBrowse does not download, bundle, or install the runtime. NSIS 3.13 remains pinned for reproducible packaging and to match the audited installer notices.
 
 When updating dependencies, check the licenses of code included in the executable and frontend bundle, including copied code and generated helpers. Keep [third-party notices](docs/legal/THIRD_PARTY_NOTICES.txt) complete and preserve their license texts.
 

@@ -86,8 +86,8 @@ tasks:
     preconditions:
       - sh: '[ "{{.INSTALL_SCOPE}}" = "user" ] || [ "{{.INSTALL_SCOPE}}" = "machine" ]'
         msg: "INSTALL_SCOPE must be user or machine"
-      - sh: '[ "$(makensis -VERSION)" = "v3.11" ]'
-        msg: "NSIS 3.11 is required to match the installer components in THIRD_PARTY_NOTICES.txt"
+      - sh: '[ "$(makensis -VERSION)" = "v3.13" ]'
+        msg: "NSIS 3.13 is required to match the installer components in THIRD_PARTY_NOTICES.txt"
     cmds:
       - >-
         makensis

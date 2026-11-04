@@ -100,7 +100,7 @@ const runtimeStart = cleaned.indexOf("# Install webview2 by launching");
 const runtimeEnd = cleaned.indexOf("!macro wails.associateFiles\n", runtimeStart);
 if (runtimeStart < 0 || runtimeEnd < 0 ||
     createHash("sha256").update(cleaned.slice(runtimeStart, runtimeEnd), "utf8").digest("hex") !==
-      "d11cdb8e3b57772d63b42c137b2b5f7bdfee1310401bb7a78e71a2cf83f94cd2") {
+      "e3545369802c29ee3e317749155575b78ade8eae0df68ac87b42c670daf39d89") {
   throw new Error("Unexpected Wails runtime installer helper; inspect the upstream template before release");
 }
 cleaned = cleaned.slice(0, runtimeStart) + cleaned.slice(runtimeEnd);
