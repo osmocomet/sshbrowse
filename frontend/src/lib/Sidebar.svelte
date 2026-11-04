@@ -698,7 +698,6 @@
     style:--row-depth={depth}
     style:--custom-contextmenu-data={connection.id}
     aria-label={`${connection.name}, ${destinationLabel(connection)}`}
-    title={`${connection.name} — ${destinationLabel(connection)}. Double-click to connect; drag onto a connection to reorder or a folder to move; right-click for actions`}
     onfocus={(event) => focusConnectionRow(event, connection)}
     onpointerdown={(event) => dragStart(event, { kind: "connections", ids: dragIdsFor(connection.id) })}
     onpointermove={pointerMove}
