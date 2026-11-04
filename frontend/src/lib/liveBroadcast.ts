@@ -1,5 +1,5 @@
 import type { BroadcastSnapshot } from "./routing";
-import type { Session } from "./tabs";
+import { sessionIds, type Session, type Tab } from "./tabs.ts";
 
 export const maximumLiveBroadcastQueuedBytes = 64 * 1024;
 export const defaultLiveBroadcastWriteTimeoutMs = 10_000;
@@ -49,6 +49,27 @@ export function liveBroadcastSnapshotInvalidationReason(
   }
   if (focusedSessionId === null || !snapshot.some((target) => target.logicalSessionId === focusedSessionId)) {
     return "Live broadcast stopped: focus moved outside the broadcast snapshot.";
+  }
+  return null;
+}
+
+// Selection and tab order do not change a broadcast's layout context.
+export function liveBroadcastLayoutInvalidationReason(
+  snapshot: readonly BroadcastSnapshot[],
+  previousTabs: readonly Tab[],
+  nextTabs: readonly Tab[],
+): string | null {
+  for (const target of snapshot) {
+    const previous = previousTabs.find((tab) => sessionIds(tab).includes(target.logicalSessionId));
+    const next = nextTabs.find((tab) => sessionIds(tab).includes(target.logicalSessionId));
+    if (previous === undefined || next === undefined || previous.id !== next.id || previous.kind !== next.kind) {
+      return "Live broadcast stopped because the terminal layout changed. Start a new broadcast to continue.";
+    }
+    const previousIds = sessionIds(previous);
+    const nextIds = sessionIds(next);
+    if (previousIds.length !== nextIds.length || previousIds.some((id) => !nextIds.includes(id))) {
+      return "Live broadcast stopped because the terminal layout changed. Start a new broadcast to continue.";
+    }
   }
   return null;
 }
@@ -155,7 +176,10 @@ export function createLiveBroadcastWriter(
     const results = await Promise.allSettled(targetIndexes.map(async (targetIndex) => {
       const target = targets[targetIndex];
       await Promise.race([
-        Promise.resolve().then(() => write(target.processInstanceId, next.input)),
+        // stop() also cancels writes scheduled but not yet issued to the backend.
+        Promise.resolve().then(() => {
+          if (!stopped) return write(target.processInstanceId, next.input);
+        }),
         timeout,
       ]);
     }));
