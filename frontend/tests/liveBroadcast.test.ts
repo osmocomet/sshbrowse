@@ -274,3 +274,19 @@ test("clipboard paste checks the generation captured before the read", async () 
   // An unchanged generation accepts the clipboard contents.
   await checkClipboardRead(9, 2, 9, 2, true);
 });
+
+test("stop cancels a chunk between drain and backend write microtasks", async () => {
+  const writes: string[] = [];
+  const writer = createLiveBroadcastWriter(
+    [target(1, 101), target(2, 102)],
+    async (_id, input) => { writes.push(input); },
+    () => {},
+  );
+  writer.enqueue("not yet issued");
+  // Drain runs first and schedules backend writes behind this continuation.
+  await Promise.resolve();
+  writer.stop();
+  await settle();
+  assert.deepEqual(writes, []);
+  assert.equal(writer.pendingBytes(), 0);
+});

@@ -79,6 +79,7 @@
   import { createBroadcastSender, placeNewSession, type BroadcastSnapshot } from "./lib/routing";
   import {
     createLiveBroadcastWriter,
+    liveBroadcastLayoutInvalidationReason,
     liveBroadcastPasteError,
     liveBroadcastPasteGenerationError,
     liveBroadcastSnapshotInvalidationReason,
@@ -906,8 +907,19 @@
     return { tabs, sessions, activeId };
   }
 
+  function applyTabLayout(nextTabs: Tab[]) {
+    if (liveBroadcast !== null) {
+      const reason = liveBroadcastLayoutInvalidationReason(liveBroadcast.snapshot, tabs, nextTabs);
+      if (reason !== null) {
+        // Stop and discard queued input before the new layout can receive input.
+        stopLiveBroadcast(reason);
+      }
+    }
+    tabs = nextTabs;
+  }
+
   function applyWorkspaceState(state: WorkspaceState<AppSession>) {
-    tabs = state.tabs;
+    applyTabLayout(state.tabs);
     sessions = state.sessions;
     activeId = state.activeId;
   }
@@ -1033,7 +1045,7 @@
   function selectSession(sessionId: number) {
     const next = selectSessionState(tabs, sessionId);
     if (next) {
-      tabs = next.tabs;
+      applyTabLayout(next.tabs);
       activeId = next.activeId;
     }
   }
@@ -1041,7 +1053,7 @@
   function tileTab(sourceTabId: number, targetTabId: number) {
     const next = tileTabState(tabs, sourceTabId, targetTabId, nextTabId);
     if (next) {
-      tabs = next.tabs;
+      applyTabLayout(next.tabs);
       activeId = next.activeId;
       nextTabId = next.nextTabId;
     }
@@ -1050,7 +1062,7 @@
   function detachSession(sessionId: number) {
     const next = detachSessionState(tabs, sessionId, nextTabId);
     if (next) {
-      tabs = next.tabs;
+      applyTabLayout(next.tabs);
       activeId = next.activeId;
       nextTabId = next.nextTabId;
     }
