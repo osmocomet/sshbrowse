@@ -1076,8 +1076,13 @@
   {/if}
   {#if status === "closed"}
     <div class="banner">
-      <span>{connection === null ? "Shell closed" : "Disconnected"}{exitCode !== null ? `, exit ${exitCode}` : ""}</span>
-      <small>exit ⏎ or ^D closes</small>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users can focus the status to read exit details.) -->
+      <span class="closed-status" tabindex={exitCode !== null ? 0 : undefined} aria-describedby={exitCode !== null ? `${sessionId}-exit-code` : undefined}>
+        {connection === null ? "Shell closed" : "Disconnected"}
+        {#if exitCode !== null}
+          <span class="exit-tooltip" id={`${sessionId}-exit-code`} role="tooltip">Exit code: {exitCode}</span>
+        {/if}
+      </span>
       <button onclick={reconnect}>{connection === null ? "Restart" : "Reconnect"} ⏎</button>
     </div>
   {/if}
@@ -1240,8 +1245,29 @@
     font: var(--ui-font-small) var(--font-ui);
     box-shadow: var(--shadow-panel);
   }
-  .banner small {
-    color: var(--text-muted);
+  .closed-status {
+    position: relative;
+    white-space: nowrap;
+  }
+  .closed-status:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .exit-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-panel);
+  }
+  .closed-status:hover .exit-tooltip,
+  .closed-status:focus .exit-tooltip {
+    display: block;
   }
   .banner button {
     border: 0;
