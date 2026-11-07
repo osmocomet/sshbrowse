@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onMount } from "svelte";
   import Bookmark from "@lucide/svelte/icons/bookmark";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
@@ -166,15 +166,6 @@
   }
 
   let effectiveWidth = $derived(clampWidth(width));
-  let animateVisibility = $state(false);
-  let previousVisible = untrack(() => visible);
-
-  $effect.pre(() => {
-    // Width changes from resizing or viewport clamps should take effect together with the content.
-    effectiveWidth;
-    animateVisibility = visible !== previousVisible;
-    previousVisible = visible;
-  });
 
   function setWidth(value: number) {
     resizeCurrentWidth = clampWidth(value);
@@ -823,7 +814,6 @@
 
 <div
   class="sidebar-shell"
-  class:animate-visibility={animateVisibility}
   class:is-hidden={!visible}
   class:is-resizing={resizing}
   inert={!visible || inactive}
@@ -947,21 +937,12 @@
     flex: none;
     min-width: 0;
   }
-  .sidebar-shell.animate-visibility {
-    transition: width 160ms ease;
-  }
   .sidebar-shell.is-hidden {
     overflow: hidden;
     pointer-events: none;
   }
   .sidebar-shell.is-resizing {
-    transition: none;
     cursor: col-resize;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .sidebar-shell.animate-visibility {
-      transition: none;
-    }
   }
   .resize-handle {
     position: absolute;

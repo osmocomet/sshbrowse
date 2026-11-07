@@ -2474,17 +2474,8 @@
   .toolbar.inset {
     padding-left: 0;
   }
-  :global(.app.mac-window-chrome) .toolbar {
-    /* Match the sidebar width transition so the toggle never jumps into or away from the traffic lights. */
-    transition: padding-left 160ms ease;
-  }
   :global(.app.mac-window-chrome) .toolbar.inset {
     padding-left: calc(80px / var(--interface-scale));
-  }
-  @media (prefers-reduced-motion: reduce) {
-    :global(.app.mac-window-chrome) .toolbar {
-      transition: none;
-    }
   }
   .toolbar button {
     --wails-draggable: no-drag;
