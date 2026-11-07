@@ -32,8 +32,8 @@ export function shortcutLabel(mac: string, linux: string, platform: ShortcutPlat
 export type TabCommand =
   | { kind: "select"; index: number } // Primary+1..8; Primary+9 is the last tab, like browsers
   | { kind: "last" }
-  | { kind: "next" } // Primary+Shift+]
-  | { kind: "previous" }; // Primary+Shift+[
+  | { kind: "next" } // Ctrl+Tab or Primary+Shift+]
+  | { kind: "previous" }; // Ctrl+Shift+Tab or Primary+Shift+[
 
 export type TerminalFontCommand = "increase" | "decrease" | "reset";
 
@@ -163,6 +163,10 @@ export function tabCommandFor(
   event: KeyboardEvent,
   platform: ShortcutPlatform = currentPlatform(),
 ): TabCommand | null {
+  // Control cycles tabs on every platform, including macOS.
+  if (event.key === "Tab" && event.ctrlKey && !event.metaKey && !event.altKey) {
+    return { kind: event.shiftKey ? "previous" : "next" };
+  }
   if (!usesPrimaryModifier(event, platform)) {
     return null;
   }

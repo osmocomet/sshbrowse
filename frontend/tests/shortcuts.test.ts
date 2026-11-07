@@ -171,3 +171,14 @@ test("macOS application shortcuts take precedence over terminal editing mappings
     null,
   );
 });
+
+test("Ctrl+Tab switches tabs forward and backward on every platform", () => {
+  for (const platform of ["mac", "linux", "windows"] as const) {
+    assert.deepEqual(tabCommandFor(keyboardEvent({ key: "Tab", ctrlKey: true }), platform), { kind: "next" });
+    assert.deepEqual(tabCommandFor(keyboardEvent({ key: "Tab", ctrlKey: true, shiftKey: true }), platform), { kind: "previous" });
+    for (const modifiers of [{}, { shiftKey: true }, { metaKey: true }, { ctrlKey: true, altKey: true }, { ctrlKey: true, metaKey: true }]) {
+      assert.equal(tabCommandFor(keyboardEvent({ key: "Tab", ...modifiers }), platform), null);
+    }
+    assert.equal(tabCommandFor(keyboardEvent({ key: "F6" }), platform), null);
+  }
+});

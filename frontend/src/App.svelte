@@ -1072,6 +1072,7 @@
     const next = selectTabAt(tabs, index);
     if (next !== null) {
       activeId = next;
+      terminalFocusRequest++;
     }
   }
 
@@ -1079,6 +1080,7 @@
     const next = stepTab(tabs, activeId, delta);
     if (next !== null) {
       activeId = next;
+      terminalFocusRequest++;
     }
   }
 
