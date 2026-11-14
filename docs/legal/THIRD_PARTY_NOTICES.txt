@@ -371,7 +371,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## golang.org/x/mod (v0.42.0)
+## golang.org/x/mod (v0.43.0)
 License: BSD-3-Clause
 
 Copyright 2009 The Go Authors.
@@ -402,7 +402,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## golang.org/x/sys (v0.49.0)
+## golang.org/x/sys (v0.50.0)
 License: BSD-3-Clause
 
 Copyright 2009 The Go Authors.
@@ -433,7 +433,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## golang.org/x/term (v0.47.0)
+## golang.org/x/term (v0.48.0)
 License: BSD-3-Clause
 
 Copyright 2009 The Go Authors.
@@ -464,7 +464,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Go runtime and standard library (go1.27.3)
+## Go runtime and standard library (go1.27.4)
 License: BSD-3-Clause (Go distribution LICENSE)
 
 Copyright 2009 The Go Authors.
@@ -542,7 +542,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 ## Frontend production code
 
-## @lucide/svelte (1.68.0)
+## @lucide/svelte (1.73.0)
 License: ISC
 
 ISC License
@@ -729,7 +729,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Additional bundled source notices
 
-## Go runtime/memmove_amd64.s (go1.27.3)
+## Go runtime/memmove_amd64.s (go1.27.4)
 License: MIT
 
 Derived from Inferno's libkern/memmove-386.s (adapted for amd64)
@@ -980,7 +980,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Vite helper code (v8.3.5)
+## Vite helper code (v8.3.8)
 License: MIT
 
 MIT License
